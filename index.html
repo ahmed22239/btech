@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>اختيار المهمة</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        h2 {
+            color: #333;
+            font-size: 1.5em;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        #login, #optionsSection, #resultSection {
+            max-width: 90%;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"], button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            box-sizing: border-box;
+            font-size: 1em;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button:hover {
+            background-color: #4cae4c;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #fff;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+            font-size: 0.9em;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        @media (max-width: 600px) {
+            th, td {
+                padding: 8px;
+                font-size: 0.8em;
+            }
+            h2 {
+                font-size: 1.2em;
+            }
+            input[type="text"], button {
+                padding: 10px;
+                font-size: 0.9em;
+            }
+        }
+        #backButton {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 1em;
+            z-index: 1000;
+        }
+        #backButton:hover {
+            background-color: #c9302c;
+        }
+    </style>
+</head>
+<body>
+
+    <button id="backButton" onclick="goBack()">الرجوع للخلف</button>
+
+    <div id="optionsSection">
+        <h2>اختر مهمة</h2>
+        <button onclick="promptCode()">عرض تفاصيل المأموريات</button>
+        <button onclick="registerMission()">تسجيل مأمورية جديدة</button>
+    </div>
+
+    <div id="login" style="display:none;">
+        <h2>تسجيل الدخول</h2>
+        <input type="text" id="code" placeholder="ادخل الكود الخاص بالموظف">
+        <button onclick="checkCode()">متابعة</button>
+    </div>
+
+    <div id="resultSection" style="display:none;">
+        <h2>البيانات</h2>
+        <div id="result">جاري تحميل البيانات...</div>
+        <button id="downloadBtn" style="display:none;" onclick="downloadExcel()">تحميل كـ Excel</button>
+    </div>
+
+    <script>
+        let filteredData = [];
+        let allHeaders = [];
+        let employeeCode = '';
+
+        const sheetId = '1mxzTMipz_-hWCzDt_zrNTE4b77Lqgi7Zb7Vzc6AjeL0';
+        const apiKey = 'AIzaSyCenQ79V1b4r1NevD3mwdFn-6DMG5DVqG0';
+        const ranges = ['1!A1:n800', '2!A1:n800'];
+
+        function promptCode() {
+            document.getElementById('optionsSection').style.display = 'none';
+            document.getElementById('login').style.display = 'block';
+            document.getElementById('backButton').style.display = 'block';
+        }
+
+        function checkCode() {
+            const codeInput = document.getElementById('code').value.trim();
+            if (!codeInput) {
+                alert('يرجى إدخال الكود');
+                return;
+            }
+
+            employeeCode = codeInput;
+            document.getElementById('login').style.display = 'none';
+            loadMissionDetails();
+        }
+
+        async function loadMissionDetails() {
+            let codeFound = false;
+
+            for (let range of ranges) {
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    const values = data.values;
+                    const headers = values[0];
+                    
+                    const filtered = values.slice(1).filter(row => row[0] === employeeCode);
+                    
+                    if (filtered.length > 0) {
+                        codeFound = true;
+                        allHeaders = headers;
+                        filteredData = filtered;
+                        break;
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    document.getElementById('result').innerHTML = 'حدث خطأ أثناء جلب البيانات.';
+                    document.getElementById('resultSection').style.display = 'block';
+                    return;
+                }
+            }
+
+            if (codeFound) {
+                let table = '<table><tr>';
+                allHeaders.forEach(header => {
+                    table += `<th>${header}</th>`;
+                });
+                table += '</tr>';
+                
+                filteredData.forEach(row => {
+                    table += '<tr>';
+                    row.forEach(cell => {
+                        table += `<td>${cell}</td>`;
+                    });
+                    table += '</tr>';
+                });
+                
+                table += '</table>';
+                
+                document.getElementById('result').innerHTML = table;
+                document.getElementById('resultSection').style.display = 'block';
+                document.getElementById('downloadBtn').style.display = 'block';
+            } else {
+                document.getElementById('result').innerHTML = 'لم يتم العثور على بيانات لهذا الكود.';
+                document.getElementById('resultSection').style.display = 'block';
+                document.getElementById('downloadBtn').style.display = 'none';
+            }
+        }
+
+        function registerMission() {
+            window.location.href = 'new_mission.html'; // Replace 'new_mission.html' with the URL of the new page
+        }
+
+        function downloadExcel() {
+            if (!filteredData || filteredData.length === 0) {
+                alert('لا توجد بيانات لتحميلها.');
+                return;
+            }
+
+            const wsData = [allHeaders];
+            filteredData.forEach(row => {
+                wsData.push(row);
+            });
+
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Data");
+
+            XLSX.writeFile(wb, "filtered_data.xlsx");
+        }
+
+        function goBack() {
+            if (document.getElementById('login').style.display === 'block') {
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('optionsSection').style.display = 'block';
+                document.getElementById('backButton').style.display = 'none';
+            } else if (document.getElementById('resultSection').style.display === 'block') {
+                document.getElementById('resultSection').style.display = 'none';
+                document.getElementById('optionsSection').style.display = 'block';
+            }
+        }
+    </script>
+
+</body>
+</html>
