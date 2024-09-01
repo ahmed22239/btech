@@ -3,816 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>إدارة المأموريات</title>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@0.9.4/css/bulma.min.css" />
-    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <title>اختيار المهمة</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        .modal.is-active {
-            display: flex;
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
         }
-        .modal-card-body {
-            text-align: center;
-        }
-        .success-icon {
-            font-size: 50px;
-            color: #23d160;
+        h2 {
+            color: #333;
+            font-size: 1.5em;
             margin-bottom: 20px;
-        }
-        #login-section {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            background-color: #f5f5f5;
-            padding: 20px;
-        }
-        #main-content {
-            display: none;
-            padding: 10px;
-        }
-        /* إخفاء العمود الأول (رقم الصف) */
-        #data-table th:nth-child(1), 
-        #data-table td:nth-child(1) {
-            display: none;
-        }
-        /* تحسين تصميم الجدول للشاشات الصغيرة */
-        #data-table {
-            width: 100%;
-            overflow-x: auto;
-        }
-        /* تحسين تصميم الأزرار والنماذج */
-        .button, .input, .textarea, .select select {
-            width: 100%;
-            max-width: 100%;
-            margin-bottom: 15px;
-        }
-        /* تحسين عرض النماذج */
-        .field {
-            margin-bottom: 10px;
-        }
-        /* تحسين عرض العناوين في الهواتف */
-        h1.title, h2.title {
-            font-size: 1.5rem;
             text-align: center;
         }
-        /* تصميم حالة "تحت المراجعة" */
-        .status-review {
-            background-color: yellow;
-            color: black;
-            padding: 5px;
-            border-radius: 4px;
+        #login, #optionsSection, #resultSection {
+            max-width: 90%;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
         }
-        /* تصميم حالة "تم المراجعة" */
-        .status-reviewed {
-            background-color: green;
-            color: white;
-            padding: 5px;
+        input[type="text"], button {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            box-sizing: border-box;
+            font-size: 1em;
             border-radius: 4px;
+            border: 1px solid #ccc;
+        }
+        button {
+            background-color: #5cb85c;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 1em;
+        }
+        button:hover {
+            background-color: #4cae4c;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 20px;
+            background-color: #fff;
+        }
+        th, td {
+            padding: 10px;
+            border: 1px solid #ddd;
+            text-align: left;
+            font-size: 0.9em;
+        }
+        th {
+            background-color: #f2f2f2;
+            font-weight: bold;
+        }
+        @media (max-width: 600px) {
+            th, td {
+                padding: 8px;
+                font-size: 0.8em;
+            }
+            h2 {
+                font-size: 1.2em;
+            }
+            input[type="text"], button {
+                padding: 10px;
+                font-size: 0.9em;
+            }
+        }
+        #backButton {
+            display: none;
+            position: fixed;
+            top: 10px;
+            left: 10px;
+            background-color: #d9534f;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 1em;
+            z-index: 1000;
+        }
+        #backButton:hover {
+            background-color: #c9302c;
         }
     </style>
 </head>
 <body>
-    <!-- قسم تسجيل الدخول -->
-    <section id="login-section">
-        <div class="box">
-            <h1 class="title has-text-centered">تسجيل الدخول</h1>
-            <div class="field">
-                <label class="label">اسم المستخدم</label>
-                <div class="control">
-                    <input class="input" type="text" id="username" placeholder="أدخل اسم المستخدم">
-                </div>
-            </div>
-            <div class="field">
-                <label class="label">كلمة المرور</label>
-                <div class="control">
-                    <input class="input" type="password" id="password" placeholder="أدخل كلمة المرور">
-                </div>
-            </div>
-            <div class="field">
-                <label class="checkbox">
-                    <input type="checkbox" id="remember-me">
-                    تذكرني
-                </label>
-            </div>
-            <div class="field is-grouped is-grouped-centered">
-                <div class="control">
-                    <button class="button is-primary" id="login-button">دخول</button>
-                </div>
-            </div>
-            <p id="login-error" class="has-text-danger has-text-centered" style="display:none;">اسم المستخدم أو كلمة المرور غير صحيحة</p>
-        </div>
-    </section>
 
-    <!-- المحتوى الرئيسي -->
-    <div id="main-content">
-        <section class="hero is-primary is-bold">
-            <div class="hero-body">
-                <div class="container">
-                    <h1 class="title">إدارة المأموريات</h1>
-                </div>
-            </div>
-        </section>
+    <button id="backButton" onclick="goBack()">الرجوع للخلف</button>
 
-        <!-- اختيار العملية -->
-        <div class="container m-4 pl-4" id="action-selection">
-            <button class="button is-primary mb-4" id="new-task-button">تسجيل مأمورية جديدة</button>
-            <button class="button is-info mb-4" id="edit-task-button">تعديل البيانات الموجودة</button>
-            <!-- إضافة زر تسجيل الإيصالات -->
-            <button class="button is-success mb-4" id="receipt-button">تسجيل إيصال جديد</button>
-        </div>
+    <div id="optionsSection">
+        <h2>اختر مهمة</h2>
+        <button onclick="promptCode()">عرض تفاصيل المأموريات</button>
+        <button onclick="registerMission()">تسجيل مأمورية جديدة</button>
+    </div>
 
-        <!-- نموذج تسجيل مأمورية جديدة -->
-        <form id="new-task-form" class="container m-4 pl-4" method="POST" style="display: none;">
-            <h2 class="title">تسجيل مأمورية جديدة</h2>
-            <input type="hidden" name="row-number" id="row-number" />
-            <input type="hidden" name="اسم المستخدم" id="logged-in-user" />
-            <div class="field">
-                <label class="label">التاريخ</label>
-                <div class="control">
-                    <input class="input" type="date" name="التاريخ" />
-                </div>
-            </div>
+    <div id="login" style="display:none;">
+        <h2>تسجيل الدخول</h2>
+        <input type="text" id="code" placeholder="ادخل الكود الخاص بالموظف">
+        <button onclick="checkCode()">متابعة</button>
+    </div>
 
-            <!-- قائمة منسدلة لأسماء السائقين -->
-            <div class="field">
-                <label class="label">اسم السائق</label>
-                <div class="control">
-                    <div class="select">
-                        <select id="driver-select" name="اسم السائق">
-                            <option value="">اختر اسم السائق</option>
-                            <!-- ستتم إضافة الخيارات هنا بواسطة JavaScript -->
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- قائمة منسدلة لأسماء المناديب -->
-            <div class="field">
-                <label class="label">اسم المندوب</label>
-                <div class="control">
-                    <div class="select">
-                        <select id="delegate-select" name="اسم المندوب">
-                            <option value="">اختر اسم المندوب</option>
-                            <!-- ستتم إضافة الخيارات هنا بواسطة JavaScript -->
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- حقل رقم السيارة مع تنبيه عند الإدخال -->
-            <div class="field">
-                <label class="label">رقم السياره</label>
-                <div class="control">
-                    <input class="input" type="text" placeholder="رقم السياره" name="رقم السياره" id="car-number-input" />
-                </div>
-            </div>
-
-            <div class="field">
-                <label class="label">اتجاه الرحلة الأساسي</label>
-                <div class="control">
-                    <input class="input" type="text" placeholder="اتجاه الرحلة" name="اتجاه الرحلة الأساسي" />
-                </div>
-            </div>
-
-            <div class="field">
-                <label class="label">عداد البدايه</label>
-                <div class="control">
-                    <input class="input" type="text" placeholder="عداد البدايه" name="عداد البدايه" />
-                </div>
-            </div>
-
-            <div class="field">
-                <label class="label">عداد النهايه</label>
-                <div class="control">
-                    <input class="input" type="text" placeholder="عداد النهايه" name="عداد النهايه" />
-                </div>
-            </div> 
-
-            <!-- حقل رقم الجولة أو رقم الإذن -->
-            <div class="field">
-                <label class="label">رقم الجولة أو رقم الإذن</label>
-                <div class="control">
-                    <input class="input" type="text" placeholder="أدخل رقم الجولة أو رقم الإذن" name="رقم الجولة أو رقم الإذن" />
-                </div>
-            </div>
-
-            <div class="field">
-                <label class="label">ملاحظات</label>
-                <div class="control">
-                    <textarea class="textarea" placeholder="أضف ملاحظاتك هنا" name="ملاحظات" rows="6"></textarea>
-                </div>
-            </div>
-
-            <!-- حقل عدد أيام الرحلة وحقل بدل مبيت -->
-            <div class="columns">
-                <div class="column">
-                    <div class="field">
-                        <label class="label">عدد أيام الرحلة</label>
-                        <div class="control">
-                            <div class="select">
-                                <select id="days-select" name="days">
-                                    <option value="">اختر عدد الأيام</option>
-                                    <option value="1">1</option>
-                                    <option value="2">2</option>
-                                    <option value="3">3</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="column">
-                    <!-- حقل بدل مبيت -->
-                    <div class="field">
-                        <label class="label">بدل مبيت</label>
-                        <div class="control">
-                            <input class="input" type="text" placeholder="أدخل بدل المبيت" name="بدل مبيت" />
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- حقل الحالة -->
-            <input type="hidden" name="الحالة" value="تحت المراجعة" />
-
-            <div class="field is-grouped">
-                <div class="control">
-                    <button class="button is-primary" type="submit" id="submit-button">حفظ</button>
-                </div>
-                <div class="control">
-                    <button class="button is-danger" type="reset">إلغاء</button>
-                </div>
-            </div>
-        </form>
-
-        <!-- نموذج تسجيل إيصال جديد -->
-        <form id="new-receipt-form" class="container m-4 pl-4" method="POST" style="display: none;">
-            <h2 class="title">تسجيل إيصال جديد</h2>
-            <input type="hidden" name="isReceipt" value="true" />
-            <input type="hidden" name="اسم المستخدم" id="logged-in-user-receipt" />
-            
-            <!-- إضافة حقل التاريخ -->
-            <div class="field">
-                <label class="label">التاريخ</label>
-                <div class="control">
-                    <input class="input" type="date" name="التاريخ" id="receipt-date" />
-                </div>
-            </div>
-    
-            <div class="field">
-                <label class="label">اسم السائق</label>
-                <div class="control">
-                    <div class="select">
-                        <select id="receipt-driver-select" name="اسم السائق">
-                            <option value="">اختر اسم السائق</option>
-                            <!-- ستتم إضافة الخيارات هنا بواسطة JavaScript -->
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <div class="field">
-                <label class="label">اسم المندوب</label>
-                <div class="control">
-                    <div class="select">
-                        <select id="receipt-delegate-select" name="اسم المندوب">
-                            <option value="">اختر اسم المندوب</option>
-                            <!-- ستتم إضافة الخيارات هنا بواسطة JavaScript -->
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- إضافة حقل نوع الايصال -->
-            <div class="field">
-                <label class="label">نوع الايصال</label>
-                <div class="control">
-                    <div class="select">
-                        <select id="receipt-type-select" name="نوع الايصال">
-                            <option value="">اختر نوع الايصال</option>
-                            <!-- ستتم إضافة الخيارات هنا بواسطة JavaScript -->
-                        </select>
-                    </div>
-                </div>
-            </div>
-
-            <!-- حقل المحافظة يظهر عند اختيار بدل مبيت -->
-            <div class="field" id="governorate-field" style="display: none;">
-                <label class="label">المحافظة</label>
-                <div class="control">
-                    <input class="input" type="text" name="المحافظة" placeholder="أدخل اسم المحافظة" />
-                </div>
-            </div>
-
-            <!-- حقول إضافية تظهر عند اختيار الصعود لدور عالي -->
-            <div class="field" id="floor-field" style="display: none;">
-                <label class="label">الدور</label>
-                <div class="control">
-                    <input class="input" type="text" name="الدور" placeholder="أدخل رقم الدور" />
-                </div>
-            </div>
-            <div class="field" id="product-field" style="display: none;">
-                <label class="label">المنتج</label>
-                <div class="control">
-                    <div class="select">
-                        <select id="product-select" name="المنتج">
-                            <option value="">اختر المنتج</option>
-                            <!-- ستتم إضافة الخيارات هنا بواسطة JavaScript -->
-                        </select>
-                    </div>
-                </div>
-            </div>
-            <div class="field" id="order-number-field" style="display: none;">
-                <label class="label">رقم الطلب</label>
-                <div class="control">
-                    <input class="input" type="text" name="رقم الطلب" placeholder="أدخل رقم الطلب" />
-                </div>
-            </div>
-
-            <div class="field is-grouped">
-                <div class="control">
-                    <button class="button is-primary" type="submit">حفظ الإيصال</button>
-                </div>
-                <div class="control">
-                    <button class="button is-danger" type="reset">إلغاء</button>
-                </div>
-            </div>
-        </form>
-
-        <!-- تعديل البيانات الموجودة -->
-        <div id="edit-task-section" class="container m-4 pl-4" style="display: none;">
-            <button class="button is-info mb-4" id="load-data-button">عرض البيانات</button>
-            <button class="button is-success mb-4" id="download-data-button" style="display: none;">تحميل البيانات</button>
-            <table class="table is-fullwidth is-striped" id="data-table" style="display: none;">
-                <thead>
-                    <tr>
-                        <th>رقم الصف</th>
-                        <th>التاريخ</th>
-                        <th>اسم السائق</th>
-                        <th>اسم المندوب</th>
-                        <th>رقم السياره</th>
-                        <th>اتجاه الرحلة</th>
-                        <th>عداد البدايه</th>
-                        <th>عداد النهايه</th>
-                        <th>رقم الجولة أو رقم الإذن</th>
-                        <th>عدد أيام الرحلة</th>
-                        <th>بدل مبيت</th>
-                        <th>صافي العداد</th>
-                        <th>ملاحظات</th>
-                        <th>الحالة</th>
-                        <th>تعديل</th>
-                    </tr>
-                </thead>
-                <tbody></tbody>
-            </table>
-        </div>
-
-        <!-- رسالة التأكيد -->
-        <div id="message" style="display: none; margin: 20px; font-weight: bold; color: green; padding: 8px; background-color: beige; border-radius: 4px; border-color: aquamarine;"></div>
-
-        <!-- نافذة منبثقة للنجاح -->
-        <div id="success-modal" class="modal">
-            <div class="modal-background"></div>
-            <div class="modal-card">
-                <section class="modal-card-body">
-                    <span class="icon success-icon">
-                        <i class="fas fa-check-circle"></i>
-                    </span>
-                    <p>تم الإرسال بنجاح!</p>
-                </section>
-                <footer class="modal-card-foot">
-                    <button class="button is-success" id="close-modal">إغلاق</button>
-                </footer>
-            </div>
-        </div>
-
-        <!-- نافذة تأكيد لعدد الأيام -->
-        <div id="days-confirm-modal" class="modal">
-            <div class="modal-background"></div>
-            <div class="modal-card">
-                <section class="modal-card-body">
-                    <p id="days-confirm-message"></p>
-                </section>
-                <footer class="modal-card-foot">
-                    <button class="button is-success" id="confirm-days">تأكيد</button>
-                    <button class="button" id="cancel-days">لا</button>
-                </footer>
-            </div>
-        </div>
-
-        <button class="button is-danger" onclick="logout()">تسجيل الخروج</button>
-
+    <div id="resultSection" style="display:none;">
+        <h2>البيانات</h2>
+        <div id="result">جاري تحميل البيانات...</div>
+        <button id="downloadBtn" style="display:none;" onclick="downloadExcel()">تحميل كـ Excel</button>
     </div>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const loggedInUser = localStorage.getItem('loggedInUser');
-            if (localStorage.getItem('isLoggedIn') === 'true' && loggedInUser) {
-                document.getElementById('login-section').style.display = 'none';
-                document.getElementById('main-content').style.display = 'block';
-                document.getElementById('logged-in-user').value = loggedInUser;
-                document.getElementById('logged-in-user-receipt').value = loggedInUser;
+        let filteredData = [];
+        let allHeaders = [];
+        let employeeCode = '';
+
+        const sheetId = '1mxzTMipz_-hWCzDt_zrNTE4b77Lqgi7Zb7Vzc6AjeL0';
+        const apiKey = 'AIzaSyCenQ79V1b4r1NevD3mwdFn-6DMG5DVqG0';
+        const ranges = ['1!A1:n800', '2!A1:n800'];
+
+        function promptCode() {
+            document.getElementById('optionsSection').style.display = 'none';
+            document.getElementById('login').style.display = 'block';
+            document.getElementById('backButton').style.display = 'block';
+        }
+
+        function checkCode() {
+            const codeInput = document.getElementById('code').value.trim();
+            if (!codeInput) {
+                alert('يرجى إدخال الكود');
+                return;
             }
 
-            // جلب بيانات السائقين والمناديب ونوع الايصال والمنتجات من Google Sheets
-            fetch('https://sheets.googleapis.com/v4/spreadsheets/1mxzTMipz_-hWCzDt_zrNTE4b77Lqgi7Zb7Vzc6AjeL0/values/الورقة10!A1:D1000?key=AIzaSyCenQ79V1b4r1NevD3mwdFn-6DMG5DVqG0')
-                .then(response => response.json())
-                .then(data => {
-                    if (!data || !data.values) {
-                        console.error('لم يتم استلام البيانات بشكل صحيح من Google Sheets.');
-                        return;
+            employeeCode = codeInput;
+            document.getElementById('login').style.display = 'none';
+            loadMissionDetails();
+        }
+
+        async function loadMissionDetails() {
+            let codeFound = false;
+
+            for (let range of ranges) {
+                const url = `https://sheets.googleapis.com/v4/spreadsheets/${sheetId}/values/${range}?key=${apiKey}`;
+                try {
+                    const response = await fetch(url);
+                    const data = await response.json();
+                    const values = data.values;
+                    const headers = values[0];
+
+                    const filtered = values.slice(1).filter(row => row[0] === employeeCode);
+
+                    if (filtered.length > 0) {
+                        codeFound = true;
+                        allHeaders = headers;
+                        filteredData = filtered;
+                        break;
                     }
+                } catch (error) {
+                    console.error('Error:', error);
+                    document.getElementById('result').innerHTML = 'حدث خطأ أثناء جلب البيانات.';
+                    document.getElementById('resultSection').style.display = 'block';
+                    return;
+                }
+            }
 
-                    const rows = data.values;
-                    const driverSelect = document.getElementById('driver-select');
-                    const delegateSelect = document.getElementById('delegate-select');
-                    const receiptDriverSelect = document.getElementById('receipt-driver-select');
-                    const receiptDelegateSelect = document.getElementById('receipt-delegate-select');
-                    const receiptTypeSelect = document.getElementById('receipt-type-select');
-                    const productSelect = document.getElementById('product-select');
+            if (codeFound) {
+                let table = '<table><tr>';
+                allHeaders.forEach(header => {
+                    table += `<th>${header}</th>`;
+                });
+                table += '</tr>';
 
-                    if (rows.length === 0) {
-                        console.error('لم يتم العثور على أي بيانات في الورقة.');
-                        return;
-                    }
-
-                    rows.forEach(row => {
-                        if (row[0]) {  // تأكد من أن العمود A يحتوي على بيانات
-                            const driverOption = document.createElement('option');
-                            driverOption.value = row[0];
-                            driverOption.textContent = row[0];
-                            driverSelect.appendChild(driverOption);
-                            receiptDriverSelect.appendChild(driverOption.cloneNode(true));
-                        }
-
-                        if (row[1]) {  // تأكد من أن العمود B يحتوي على بيانات
-                            const delegateOption = document.createElement('option');
-                            delegateOption.value = row[1];
-                            delegateOption.textContent = row[1];
-                            delegateSelect.appendChild(delegateOption);
-                            receiptDelegateSelect.appendChild(delegateOption.cloneNode(true));
-                        }
-
-                        if (row[2]) {  // تأكد من أن العمود C يحتوي على بيانات
-                            const typeOption = document.createElement('option');
-                            typeOption.value = row[2];
-                            typeOption.textContent = row[2];
-                            receiptTypeSelect.appendChild(typeOption);
-                        }
-
-                        if (row[3]) {  // تأكد من أن العمود D يحتوي على بيانات
-                            const productOption = document.createElement('option');
-                            productOption.value = row[3];
-                            productOption.textContent = row[3];
-                            productSelect.appendChild(productOption);
-                        }
+                filteredData.forEach(row => {
+                    table += '<tr>';
+                    row.forEach(cell => {
+                        table += `<td>${cell}</td>`;
                     });
-                })
-                .catch(error => {
-                    console.error('Error fetching the data from Google Sheets:', error);
+                    table += '</tr>';
                 });
 
-            // التعامل مع تغيير نوع الإيصال
-            document.getElementById('receipt-type-select').addEventListener('change', function() {
-                const selectedType = this.value;
-                
-                // إخفاء الحقول الإضافية في البداية
-                document.getElementById('governorate-field').style.display = 'none';
-                document.getElementById('floor-field').style.display = 'none';
-                document.getElementById('product-field').style.display = 'none';
-                document.getElementById('order-number-field').style.display = 'none';
+                table += '</table>';
 
-                if (selectedType === 'بدل مبيت') {
-                    const isConfirmed = confirm("هل أنت متأكد من أنك لم تقم بالمبيت في فندق؟");
-                    if (isConfirmed) {
-                        document.getElementById('governorate-field').style.display = 'block';
-                    } else {
-                        this.value = ''; // إعادة تعيين الاختيار
-                    }
-                } else if (selectedType === 'الصعود لدور عالي') {
-                    document.getElementById('floor-field').style.display = 'block';
-                    document.getElementById('product-field').style.display = 'block';
-                    document.getElementById('order-number-field').style.display = 'block';
-                }
-            });
-
-            // قبل الحفظ، تأكيد البيانات
-            document.getElementById("new-receipt-form").addEventListener("submit", function (e) {
-                const isConfirmed = confirm("هل أنت متأكد من البيانات المرفقة؟");
-                if (!isConfirmed) {
-                    e.preventDefault(); // منع الإرسال إذا لم يتم التأكيد
-                }
-            });
-        });
-
-        document.getElementById('login-button').addEventListener('click', function() {
-            var username = document.getElementById('username').value;
-            var password = document.getElementById('password').value;
-            var rememberMe = document.getElementById('remember-me').checked;
-
-            document.getElementById('login-error').style.display = 'none';
-
-            fetch('https://sheets.googleapis.com/v4/spreadsheets/1mxzTMipz_-hWCzDt_zrNTE4b77Lqgi7Zb7Vzc6AjeL0/values/الورقة9!A1:B800?key=AIzaSyCenQ79V1b4r1NevD3mwdFn-6DMG5DVqG0')
-                .then(response => response.json())
-                .then(data => {
-                    const rows = data.values;
-                    const userRow = rows.find(row => row[0] === username && row[1] === password);
-
-                    if (userRow) {
-                        localStorage.setItem('isLoggedIn', 'true');
-                        localStorage.setItem('loggedInUser', username);
-                        document.getElementById('logged-in-user').value = username;
-                        document.getElementById('logged-in-user-receipt').value = username;
-                        document.getElementById('login-section').style.display = 'none';
-                        document.getElementById('main-content').style.display = 'block';
-                    } else {
-                        document.getElementById('login-error').style.display = 'block';
-                    }
-                })
-                .catch(error => {
-                    console.error('Error fetching the login data:', error);
-                    alert('حدث خطأ أثناء محاولة تسجيل الدخول. يرجى المحاولة لاحقاً.');
-                });
-        });
-
-        // لتسجيل الخروج، يمكنك إضافة زر لتسجيل الخروج ومسح حالة "تذكرني" من localStorage
-        function logout() {
-            localStorage.removeItem('isLoggedIn');
-            localStorage.removeItem('loggedInUser');
-            location.reload();  // إعادة تحميل الصفحة
+                document.getElementById('result').innerHTML = table;
+                document.getElementById('resultSection').style.display = 'block';
+                document.getElementById('downloadBtn').style.display = 'block';
+            } else {
+                document.getElementById('result').innerHTML = 'لم يتم العثور على بيانات لهذا الكود.';
+                document.getElementById('resultSection').style.display = 'block';
+                document.getElementById('downloadBtn').style.display = 'none';
+            }
         }
 
-        // التحكم في عرض النماذج بناءً على الاختيار
-        document.getElementById("new-task-button").addEventListener("click", function () {
-            document.getElementById("action-selection").style.display = "none";
-            document.getElementById("new-task-form").style.display = "block";
-        });
-
-        document.getElementById("edit-task-button").addEventListener("click", function () {
-            document.getElementById("action-selection").style.display = "none";
-            document.getElementById("edit-task-section").style.display = "block";
-        });
-
-        // التعامل مع زر تسجيل الإيصالات
-        document.getElementById("receipt-button").addEventListener("click", function () {
-            document.getElementById("action-selection").style.display = "none";
-            document.getElementById("new-receipt-form").style.display = "block";
-        });
-
-        // عرض البيانات
-        document.getElementById("load-data-button").addEventListener("click", function () {
-    const loggedInUser = localStorage.getItem('loggedInUser');
-
-    fetch("https://script.google.com/macros/s/AKfycbyhIR6cK3bTjdnhDIR09aAun3Dn0JHHJjRtOl-pGtMUWLWzU64mlIyDpwauxbdrloxy/exec")
-        .then(response => response.json())
-        .then(data => {
-            const tableBody = document.getElementById("data-table").querySelector("tbody");
-            tableBody.innerHTML = "";
-
-            const filteredData = data.filter(row => row["اسم المستخدم"] === loggedInUser);
-
-            filteredData.forEach((row, index) => {
-                const startOdometer = parseInt(row["عداد البدايه"], 10) || 0;
-                const endOdometer = parseInt(row["عداد النهايه"], 10) || 0;
-                const netOdometer = endOdometer - startOdometer;
-
-                // قم بتعديل طريقة عرض التاريخ
-                let displayDate = row["التاريخ"] || "";
-                if (displayDate) {
-                    const date = new Date(displayDate);
-                    date.setDate(date.getDate() + 1); // زيادة يوم واحد لضبط الفارق
-                    displayDate = date.toISOString().split('T')[0];
-                }
-
-                let statusClass = "status-review";
-                let statusText = "تحت المراجعة";
-                let isEditable = true;
-                if (row["الحالة"] === "تم المراجعة") {
-                    statusClass = "status-reviewed";
-                    statusText = "تم المراجعة ✔️";
-                    isEditable = false;
-                }
-
-                const tr = document.createElement("tr");
-                tr.innerHTML = `
-                    <td>${row["row"]}</td>
-                    <td>${displayDate}</td>
-                    <td>${row["اسم السائق"] || ""}</td>
-                    <td>${row["اسم المندوب"] || ""}</td>
-                    <td>${row["رقم السياره"] || ""}</td>
-                    <td>${row["اتجاه الرحلة الأساسي"] || ""}</td>
-                    <td>${startOdometer}</td>
-                    <td>${endOdometer}</td>
-                    <td>${row["رقم الجولة أو رقم الإذن"] || ""}</td>
-                    <td>${row["عدد أيام الرحلة"] || ""}</td>
-                    <td>${row["بدل مبيت"] || ""}</td>
-                    <td>${netOdometer}</td>
-                    <td>${row["ملاحظات"] || ""}</td>
-                    <td class="${statusClass}">${statusText}</td>
-                    <td><button class="button is-small is-warning" onclick="editRow(${row["row"]})" ${isEditable ? '' : 'disabled'}>تعديل</button></td>
-                `;
-                tableBody.appendChild(tr);
-            });
-
-            document.getElementById("data-table").style.display = "table";
-            document.getElementById("download-data-button").style.display = "block";
-        })
-        .catch(error => {
-            console.error("حدث خطأ أثناء جلب البيانات:", error);
-            alert("حدث خطأ أثناء جلب البيانات.");
-        });
-});
-
-        // تعديل صف معين
-        function editRow(rowNumber) {
-            const loggedInUser = localStorage.getItem('loggedInUser');
-
-            fetch(`https://script.google.com/macros/s/AKfycbyhIR6cK3bTjdnhDIR09aAun3Dn0JHHJjRtOl-pGtMUWLWzU64mlIyDpwauxbdrloxy/exec?row=${rowNumber}`)
-                .then(response => response.json())
-                .then(data => {
-                    // تحقق من أن المستخدم الحالي هو نفسه الذي قام بإنشاء هذا السجل
-                    if (data["اسم المستخدم"] !== loggedInUser) {
-                        alert("لا يمكنك تعديل هذه البيانات لأنها لا تخصك.");
-                        return;
-                    }
-
-                    // لا يسمح بالتعديل إذا كانت الحالة "تم المراجعة"
-                    if (data["الحالة"] === "تم المراجعة") {
-                        alert("لا يمكنك تعديل هذه البيانات لأنها تم مراجعتها بالفعل.");
-                        return;
-                    }
-
-                    document.getElementById("row-number").value = rowNumber;  // تأكد من حفظ رقم الصف للتعديل
-
-                    document.getElementsByName("التاريخ")[0].value = data["التاريخ"] || "";
-                    document.getElementsByName("اسم السائق")[0].value = data["اسم السائق"] || "";
-                    document.getElementsByName("اسم المندوب")[0].value = data["اسم المندوب"] || "";
-                    document.getElementsByName("رقم السياره")[0].value = data["رقم السياره"] || "";
-                    document.getElementsByName("اتجاه الرحلة الأساسي")[0].value = data["اتجاه الرحلة الأساسي"] || "";
-                    document.getElementsByName("عداد البدايه")[0].value = data["عداد البدايه"] || "";
-                    document.getElementsByName("عداد النهايه")[0].value = data["عداد النهايه"] || "";
-                    document.getElementsByName("رقم الجولة أو رقم الإذن")[0].value = data["رقم الجولة أو رقم الإذن"] || "";
-                    document.getElementsByName("ملاحظات")[0].value = data["ملاحظات"] || "";
-                    document.getElementsByName("بدل مبيت")[0].value = data["بدل مبيت"] || "";
-                    document.getElementById("days-select").value = data["عدد أيام الرحلة"] || "";
-
-                    // تعيين وضع التعديل
-                    document.getElementById("new-task-form").setAttribute("data-edit-mode", "true");
-                    document.getElementById("new-task-form").style.display = "block";
-                })
-                .catch(error => {
-                    console.error("حدث خطأ أثناء جلب البيانات:", error);
-                    alert("حدث خطأ أثناء جلب البيانات.");
-                });
+        function registerMission() {
+            window.location.href = 'new_mission.html'; // Replace 'new_mission.html' with the URL of the new page
         }
 
-        // عرض نافذة التأكيد بناءً على اختيار عدد الأيام
-        document.getElementById("days-select").addEventListener("change", function () {
-            const selectedDays = this.value;
-            const messageElement = document.getElementById("days-confirm-message");
-
-            if (selectedDays === "1") {
-                messageElement.textContent = "هل أنت متأكد بالذهاب والرجوع في نفس اليوم؟";
-            } else if (selectedDays === "2") {
-                messageElement.textContent = "هل تم الرجوع في اليوم التالي من المأمورية؟";
-            } else if (selectedDays === "3") {
-                messageElement.textContent = "هل تم الرجوع في اليوم الثالث من المأمورية؟";
+        function downloadExcel() {
+            if (!filteredData || filteredData.length === 0) {
+                alert('لا توجد بيانات لتحميلها.');
+                return;
             }
 
-            // عرض النافذة المنبثقة
-            document.getElementById("days-confirm-modal").classList.add("is-active");
-        });
-
-        // تأكيد اختيار عدد الأيام
-        document.getElementById("confirm-days").addEventListener("click", function () {
-            // إغلاق النافذة المنبثقة
-            document.getElementById("days-confirm-modal").classList.remove("is-active");
-        });
-
-        // إلغاء اختيار عدد الأيام
-        document.getElementById("cancel-days").addEventListener("click", function () {
-            // إغلاق النافذة المنبثقة
-            document.getElementById("days-confirm-modal").classList.remove("is-active");
-
-            // إعادة تعيين الاختيار
-            document.getElementById("days-select").value = "";
-        });
-
-        // حفظ التعديلات مع إضافة Timestamp وإظهار نافذة النجاح
-        document.getElementById("new-task-form").addEventListener("submit", function (e) {
-            e.preventDefault();
-            document.getElementById("submit-button").disabled = true;
-
-            var formData = new FormData(this);
-            var now = new Date();
-            formData.append("Timestamp", now.toISOString());
-            formData.append("اسم المستخدم", localStorage.getItem('loggedInUser')); // إضافة اسم المستخدم المسجل
-
-            var keyValuePairs = [];
-            for (var pair of formData.entries()) {
-                keyValuePairs.push(pair[0] + "=" + pair[1]);
-            }
-
-            var formDataString = keyValuePairs.join("&");
-
-            // التحقق مما إذا كان في وضع التعديل أو الإضافة الجديدة
-            const isEditMode = document.getElementById("new-task-form").getAttribute("data-edit-mode") === "true";
-            const url = isEditMode 
-                ? `https://script.google.com/macros/s/AKfycbyhIR6cK3bTjdnhDIR09aAun3Dn0JHHJjRtOl-pGtMUWLWzU64mlIyDpwauxbdrloxy/exec?edit=true&row=${document.getElementById("row-number").value}` 
-                : "https://script.google.com/macros/s/AKfycbyhIR6cK3bTjdnhDIR09aAun3Dn0JHHJjRtOl-pGtMUWLWzU64mlIyDpwauxbdrloxy/exec";
-
-            fetch(url, {
-                redirect: "follow",
-                method: "POST",
-                body: formDataString,
-                headers: {
-                    "Content-Type": "text/plain;charset=utf-8",
-                },
-            })
-                .then(function (response) {
-                    if (response.ok) {
-                        // عرض النافذة المنبثقة عند النجاح
-                        document.getElementById("success-modal").classList.add("is-active");
-                    } else {
-                        throw new Error("Failed to submit the form.");
-                    }
-                })
-                .catch(function (error) {
-                    console.error(error);
-                    alert("حدث خطأ أثناء حفظ البيانات.");
-                })
-                .finally(function () {
-                    document.getElementById("submit-button").disabled = false;
-                    // إعادة تعيين وضع التعديل بعد الحفظ
-                    document.getElementById("new-task-form").removeAttribute("data-edit-mode");
-                });
-        });
-
-        // حفظ بيانات الإيصالات
-        document.getElementById("new-receipt-form").addEventListener("submit", function (e) {
-            e.preventDefault();
-            var formData = new FormData(this);
-            formData.append("اسم المستخدم", localStorage.getItem('loggedInUser'));
-
-            var keyValuePairs = [];
-            for (var pair of formData.entries()) {
-                keyValuePairs.push(pair[0] + "=" + pair[1]);
-            }
-
-            var formDataString = keyValuePairs.join("&");
-
-            fetch("https://script.google.com/macros/s/AKfycbyhIR6cK3bTjdnhDIR09aAun3Dn0JHHJjRtOl-pGtMUWLWzU64mlIyDpwauxbdrloxy/exec", {
-                redirect: "follow",
-                method: "POST",
-                body: formDataString,
-                headers: {
-                    "Content-Type": "text/plain;charset=utf-8",
-                },
-            })
-                .then(function (response) {
-                    if (response.ok) {
-                        document.getElementById("success-modal").classList.add("is-active");
-                    } else {
-                        throw new Error("Failed to submit the form.");
-                    }
-                })
-                .catch(function (error) {
-                    console.error(error);
-                    alert("حدث خطأ أثناء حفظ البيانات.");
-                });
-        });
-
-        // إغلاق النافذة المنبثقة وإعادة تحميل الصفحة لعرض الاختيارات مرة أخرى
-        document.getElementById("close-modal").addEventListener("click", function () {
-            document.getElementById("success-modal").classList.remove("is-active");
-            window.location.reload();  // إعادة تحميل نفس الصفحة
-        });
-
-        // تنبيه عند إدخال رقم السيارة
-        document.getElementById("car-number-input").addEventListener("blur", function () {
-            const carNumber = this.value.trim();
-            if (carNumber !== "") {
-                const isConfirmed = confirm(`هل أنت متأكد من أن رقم السيارة "${carNumber}" صحيح؟\nفي حال كتابة رقم السيارة بشكل خاطئ، لن يتم صرف المأمورية.`);
-                if (!isConfirmed) {
-                    this.value = "";  // مسح الحقل إذا لم يتم التأكيد
-                }
-            }
-        });
-
-        // تحميل البيانات في ملف Excel بدون العمودين المحددين
-        document.getElementById("download-data-button").addEventListener("click", function () {
-            const table = document.getElementById("data-table");
-            const rows = Array.from(table.querySelectorAll('tr'));
-
-            const data = rows.map(row => {
-                const cells = Array.from(row.querySelectorAll('th, td'));
-                return cells.slice(1, -2).map(cell => cell.innerText); // تجاهل العمود الأول والأخير
+            const wsData = [allHeaders];
+            filteredData.forEach(row => {
+                wsData.push(row);
             });
 
-            const ws = XLSX.utils.aoa_to_sheet(data);
+            const ws = XLSX.utils.aoa_to_sheet(wsData);
             const wb = XLSX.utils.book_new();
             XLSX.utils.book_append_sheet(wb, ws, "Data");
-            XLSX.writeFile(wb, "data.xlsx");
-        });
+
+            XLSX.writeFile(wb, "filtered_data.xlsx");
+        }
+
+        function goBack() {
+            if (document.getElementById('login').style.display === 'block') {
+                document.getElementById('login').style.display = 'none';
+                document.getElementById('optionsSection').style.display = 'block';
+                document.getElementById('backButton').style.display = 'none';
+            } else if (document.getElementById('resultSection').style.display === 'block') {
+                document.getElementById('resultSection').style.display = 'none';
+                document.getElementById('optionsSection').style.display = 'block';
+            }
+        }
     </script>
+
 </body>
 </html>
