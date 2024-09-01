@@ -129,7 +129,7 @@
             <div class="field">
                 <label class="label">التاريخ</label>
                 <div class="control">
-                    <input class="input" type="date" name="التاريخ" />
+                    <input class="input" type="date" name="التاريخ" required />
                 </div>
             </div>
 
@@ -138,7 +138,7 @@
                 <label class="label">اسم السائق</label>
                 <div class="control">
                     <div class="select">
-                        <select id="driver-select" name="اسم السائق">
+                        <select id="driver-select" name="اسم السائق" required>
                             <option value="">اختر اسم السائق</option>
                             <!-- ستتم إضافة الخيارات هنا بواسطة JavaScript -->
                         </select>
@@ -151,7 +151,7 @@
                 <label class="label">اسم المندوب</label>
                 <div class="control">
                     <div class="select">
-                        <select id="delegate-select" name="اسم المندوب">
+                        <select id="delegate-select" name="اسم المندوب" required>
                             <option value="">اختر اسم المندوب</option>
                             <!-- ستتم إضافة الخيارات هنا بواسطة JavaScript -->
                         </select>
@@ -163,28 +163,28 @@
             <div class="field">
                 <label class="label">رقم السياره</label>
                 <div class="control">
-                    <input class="input" type="text" placeholder="رقم السياره" name="رقم السياره" id="car-number-input" />
+                    <input class="input" type="text" placeholder="رقم السياره" name="رقم السياره" id="car-number-input" required />
                 </div>
             </div>
 
             <div class="field">
                 <label class="label">اتجاه الرحلة الأساسي</label>
                 <div class="control">
-                    <input class="input" type="text" placeholder="اتجاه الرحلة" name="اتجاه الرحلة الأساسي" />
+                    <input class="input" type="text" placeholder="اتجاه الرحلة" name="اتجاه الرحلة الأساسي" required />
                 </div>
             </div>
 
             <div class="field">
                 <label class="label">عداد البدايه</label>
                 <div class="control">
-                    <input class="input" type="text" placeholder="عداد البدايه" name="عداد البدايه" />
+                    <input class="input" type="text" placeholder="عداد البدايه" name="عداد البدايه" required />
                 </div>
             </div>
 
             <div class="field">
                 <label class="label">عداد النهايه</label>
                 <div class="control">
-                    <input class="input" type="text" placeholder="عداد النهايه" name="عداد النهايه" />
+                    <input class="input" type="text" placeholder="عداد النهايه" name="عداد النهايه" required />
                 </div>
             </div> 
 
@@ -192,14 +192,14 @@
             <div class="field">
                 <label class="label">رقم الجولة أو رقم الإذن</label>
                 <div class="control">
-                    <input class="input" type="text" placeholder="أدخل رقم الجولة أو رقم الإذن" name="رقم الجولة أو رقم الإذن" />
+                    <input class="input" type="text" placeholder="أدخل رقم الجولة أو رقم الإذن" name="رقم الجولة أو رقم الإذن" required />
                 </div>
             </div>
 
             <div class="field">
                 <label class="label">ملاحظات</label>
                 <div class="control">
-                    <textarea class="textarea" placeholder="أضف ملاحظاتك هنا" name="ملاحظات" rows="6"></textarea>
+                    <textarea class="textarea" placeholder="أضف ملاحظاتك هنا" name="ملاحظات" rows="6" required></textarea>
                 </div>
             </div>
 
@@ -210,7 +210,7 @@
                         <label class="label">عدد أيام الرحلة</label>
                         <div class="control">
                             <div class="select">
-                                <select id="days-select" name="days">
+                                <select id="days-select" name="days" required>
                                     <option value="">اختر عدد الأيام</option>
                                     <option value="1">1</option>
                                     <option value="2">2</option>
@@ -327,6 +327,13 @@
                     <input class="input" type="text" name="رقم الطلب" placeholder="أدخل رقم الطلب" />
                 </div>
             </div>
+
+            <div class="field" id="car-number-field-receipt">
+                 <label class="label">رقم السياره</label>
+                 <div class="control">
+                     <input class="input" type="text" name="رقم السيارة" placeholder="أدخل رقم السيارة" required />
+                  </div>
+              </div>
 
             <div class="field is-grouped">
                 <div class="control">
@@ -702,6 +709,25 @@
             e.preventDefault();
             document.getElementById("submit-button").disabled = true;
 
+            // التأكد من ملء جميع الحقول المطلوبة باستثناء حقل بدل مبيت
+            const requiredFields = document.querySelectorAll("#new-task-form [required]");
+            let isValid = true;
+
+            requiredFields.forEach(field => {
+                if (!field.value.trim()) {
+                    isValid = false;
+                    field.classList.add("is-danger");
+                } else {
+                    field.classList.remove("is-danger");
+                }
+            });
+
+            if (!isValid) {
+                alert("يرجى ملء جميع الحقول المطلوبة.");
+                document.getElementById("submit-button").disabled = false;
+                return;
+            }
+
             var formData = new FormData(this);
             var now = new Date();
             formData.append("Timestamp", now.toISOString());
@@ -749,37 +775,55 @@
 
         // حفظ بيانات الإيصالات
         document.getElementById("new-receipt-form").addEventListener("submit", function (e) {
-            e.preventDefault();
-            var formData = new FormData(this);
-            formData.append("اسم المستخدم", localStorage.getItem('loggedInUser'));
+    e.preventDefault();
+    var formData = new FormData(this);
+    formData.append("اسم المستخدم", localStorage.getItem('loggedInUser'));
 
-            var keyValuePairs = [];
-            for (var pair of formData.entries()) {
-                keyValuePairs.push(pair[0] + "=" + pair[1]);
+    // تحقق من ملء جميع الحقول المطلوبة
+    const requiredFields = this.querySelectorAll('[required]');
+    let isValid = true;
+
+    requiredFields.forEach(field => {
+        if (!field.value.trim()) {
+            isValid = false;
+            field.classList.add("is-danger");
+        } else {
+            field.classList.remove("is-danger");
+        }
+    });
+
+    if (!isValid) {
+        alert("يرجى ملء جميع الحقول المطلوبة.");
+        return;
+    }
+
+    var keyValuePairs = [];
+    for (var pair of formData.entries()) {
+        keyValuePairs.push(pair[0] + "=" + pair[1]);
+    }
+
+    var formDataString = keyValuePairs.join("&");
+
+    fetch("https://script.google.com/macros/s/AKfycbyhIR6cK3bTjdnhDIR09aAun3Dn0JHHJjRtOl-pGtMUWLWzU64mlIyDpwauxbdrloxy/exec", {
+        redirect: "follow",
+        method: "POST",
+        body: formDataString,
+        headers: {
+            "Content-Type": "text/plain;charset=utf-8",
+        },
+    })
+        .then(function (response) {
+            if (response.ok) {
+                document.getElementById("success-modal").classList.add("is-active");
+            } else {
+                throw new Error("Failed to submit the form.");
             }
-
-            var formDataString = keyValuePairs.join("&");
-
-            fetch("https://script.google.com/macros/s/AKfycbyhIR6cK3bTjdnhDIR09aAun3Dn0JHHJjRtOl-pGtMUWLWzU64mlIyDpwauxbdrloxy/exec", {
-                redirect: "follow",
-                method: "POST",
-                body: formDataString,
-                headers: {
-                    "Content-Type": "text/plain;charset=utf-8",
-                },
-            })
-                .then(function (response) {
-                    if (response.ok) {
-                        document.getElementById("success-modal").classList.add("is-active");
-                    } else {
-                        throw new Error("Failed to submit the form.");
-                    }
-                })
-                .catch(function (error) {
-                    console.error(error);
-                    alert("حدث خطأ أثناء حفظ البيانات.");
-                });
+        })
+        .catch(function (error) {
+            console.error(error);
+            alert("حدث خطأ أثناء حفظ البيانات.");
         });
+});
 
         // إغلاق النافذة المنبثقة وإعادة تحميل الصفحة لعرض الاختيارات مرة أخرى
         document.getElementById("close-modal").addEventListener("click", function () {
