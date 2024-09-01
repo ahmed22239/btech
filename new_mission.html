@@ -560,61 +560,67 @@
 
         // عرض البيانات
         document.getElementById("load-data-button").addEventListener("click", function () {
-            const loggedInUser = localStorage.getItem('loggedInUser');
+    const loggedInUser = localStorage.getItem('loggedInUser');
 
-            fetch("https://script.google.com/macros/s/AKfycbyhIR6cK3bTjdnhDIR09aAun3Dn0JHHJjRtOl-pGtMUWLWzU64mlIyDpwauxbdrloxy/exec")
-                .then(response => response.json())
-                .then(data => {
-                    const tableBody = document.getElementById("data-table").querySelector("tbody");
-                    tableBody.innerHTML = "";
+    fetch("https://script.google.com/macros/s/AKfycbyhIR6cK3bTjdnhDIR09aAun3Dn0JHHJjRtOl-pGtMUWLWzU64mlIyDpwauxbdrloxy/exec")
+        .then(response => response.json())
+        .then(data => {
+            const tableBody = document.getElementById("data-table").querySelector("tbody");
+            tableBody.innerHTML = "";
 
-                    // تصفية البيانات لإظهار فقط ما يتطابق مع اسم المستخدم المسجل
-                    const filteredData = data.filter(row => row["اسم المستخدم"] === loggedInUser);
+            const filteredData = data.filter(row => row["اسم المستخدم"] === loggedInUser);
 
-                    filteredData.forEach((row, index) => {
-                        const startOdometer = parseInt(row["عداد البدايه"], 10) || 0;
-                        const endOdometer = parseInt(row["عداد النهايه"], 10) || 0;
-                        const netOdometer = endOdometer - startOdometer;
+            filteredData.forEach((row, index) => {
+                const startOdometer = parseInt(row["عداد البدايه"], 10) || 0;
+                const endOdometer = parseInt(row["عداد النهايه"], 10) || 0;
+                const netOdometer = endOdometer - startOdometer;
 
-                        // تعيين الحالة بناءً على قيمة الحقل في الشيت
-                        let statusClass = "status-review";
-                        let statusText = "تحت المراجعة";
-                        let isEditable = true;
-                        if (row["الحالة"] === "تم المراجعة") {
-                            statusClass = "status-reviewed";
-                            statusText = "تم المراجعة ✔️";
-                            isEditable = false; // لا يسمح بالتعديل إذا كانت الحالة "تم المراجعة"
-                        }
+                // قم بتعديل طريقة عرض التاريخ
+                let displayDate = row["التاريخ"] || "";
+                if (displayDate) {
+                    const date = new Date(displayDate);
+                    date.setDate(date.getDate() + 1); // زيادة يوم واحد لضبط الفارق
+                    displayDate = date.toISOString().split('T')[0];
+                }
 
-                        const tr = document.createElement("tr");
-                        tr.innerHTML = `
-                            <td>${row["row"]}</td> <!-- رقم الصف الفعلي -->
-                            <td>${row["التاريخ"] || ""}</td>
-                            <td>${row["اسم السائق"] || ""}</td>
-                            <td>${row["اسم المندوب"] || ""}</td>
-                            <td>${row["رقم السياره"] || ""}</td>
-                            <td>${row["اتجاه الرحلة الأساسي"] || ""}</td>
-                            <td>${startOdometer}</td>
-                            <td>${endOdometer}</td>
-                            <td>${row["رقم الجولة أو رقم الإذن"] || ""}</td>
-                            <td>${row["عدد أيام الرحلة"] || ""}</td>
-                            <td>${row["بدل مبيت"] || ""}</td>
-                            <td>${netOdometer}</td>
-                            <td>${row["ملاحظات"] || ""}</td>
-                            <td class="${statusClass}">${statusText}</td>
-                            <td><button class="button is-small is-warning" onclick="editRow(${row["row"]})" ${isEditable ? '' : 'disabled'}>تعديل</button></td>
-                        `;
-                        tableBody.appendChild(tr);
-                    });
+                let statusClass = "status-review";
+                let statusText = "تحت المراجعة";
+                let isEditable = true;
+                if (row["الحالة"] === "تم المراجعة") {
+                    statusClass = "status-reviewed";
+                    statusText = "تم المراجعة ✔️";
+                    isEditable = false;
+                }
 
-                    document.getElementById("data-table").style.display = "table";
-                    document.getElementById("download-data-button").style.display = "block";
-                })
-                .catch(error => {
-                    console.error("حدث خطأ أثناء جلب البيانات:", error);
-                    alert("حدث خطأ أثناء جلب البيانات.");
-                });
+                const tr = document.createElement("tr");
+                tr.innerHTML = `
+                    <td>${row["row"]}</td>
+                    <td>${displayDate}</td>
+                    <td>${row["اسم السائق"] || ""}</td>
+                    <td>${row["اسم المندوب"] || ""}</td>
+                    <td>${row["رقم السياره"] || ""}</td>
+                    <td>${row["اتجاه الرحلة الأساسي"] || ""}</td>
+                    <td>${startOdometer}</td>
+                    <td>${endOdometer}</td>
+                    <td>${row["رقم الجولة أو رقم الإذن"] || ""}</td>
+                    <td>${row["عدد أيام الرحلة"] || ""}</td>
+                    <td>${row["بدل مبيت"] || ""}</td>
+                    <td>${netOdometer}</td>
+                    <td>${row["ملاحظات"] || ""}</td>
+                    <td class="${statusClass}">${statusText}</td>
+                    <td><button class="button is-small is-warning" onclick="editRow(${row["row"]})" ${isEditable ? '' : 'disabled'}>تعديل</button></td>
+                `;
+                tableBody.appendChild(tr);
+            });
+
+            document.getElementById("data-table").style.display = "table";
+            document.getElementById("download-data-button").style.display = "block";
+        })
+        .catch(error => {
+            console.error("حدث خطأ أثناء جلب البيانات:", error);
+            alert("حدث خطأ أثناء جلب البيانات.");
         });
+});
 
         // تعديل صف معين
         function editRow(rowNumber) {
