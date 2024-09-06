@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل إيصال جديد</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input, select, button {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>تسجيل إيصال جديد</h2>
+        <form id="receiptForm">
+            <input type="date" id="receiptDateInput" required>
+            <select id="driverInput" required>
+                <option value="">اختر اسم السائق</option>
+            </select>
+            <input type="text" id="delegateInput" placeholder="اسم المندوب" required>
+            <select id="receiptTypeInput" required>
+                <option value="">اختر نوع الإيصال</option>
+                <option value="بدل مبيت">بدل مبيت</option>
+                <option value="بدل 3 نقلات من المخزن">بدل 3 نقلات من المخزن</option>
+                <option value="بدل 2 نقله خارجي">بدل 2 نقله خارجي</option>
+                <option value="الصعود لدور عالي">الصعود لدور عالي</option>
+            </select>
+            <input type="text" id="carNumberInput" placeholder="رقم السيارة" required>
+            <input type="text" id="governorateInput" placeholder="المحافظة" class="hidden">
+            <select id="productInput" class="hidden">
+                <option value="">اختر المنتج</option>
+                <option value="ثلاجة">ثلاجة</option>
+                <option value="بوتجاز">بوتجاز</option>
+                <option value="غسالة">غسالة</option>
+                <option value="تكييف 3 حصان">تكييف 3 حصان</option>
+            </select>
+            <input type="number" id="floorNumberInput" placeholder="رقم الدور" class="hidden">
+            <button type="submit">تسجيل</button>
+        </form>
+        <div id="message"></div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAf9OuANGnp9WNDad6n7ky7K7v9mtNsEzI",
+            authDomain: "ahmed-15d52.firebaseapp.com",
+            databaseURL: "https://ahmed-15d52-default-rtdb.firebaseio.com",
+            projectId: "ahmed-15d52",
+            storageBucket: "ahmed-15d52.appspot.com",
+            messagingSenderId: "103191449244",
+            appId: "1:103191449244:web:c33ae04fd0473010da2759",
+            measurementId: "G-WF6LYR9F3D"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const auth = getAuth(app);
+
+        let currentUserEmail = '';
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUserEmail = user.email;
+                loadDriversAndDelegates();
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        const receiptForm = document.getElementById('receiptForm');
+        const receiptTypeInput = document.getElementById('receiptTypeInput');
+        const governorateInput = document.getElementById('governorateInput');
+        const productInput = document.getElementById('productInput');
+        const floorNumberInput = document.getElementById('floorNumberInput');
+
+        receiptTypeInput.addEventListener('change', function() {
+            if (this.value === 'بدل مبيت') {
+                governorateInput.classList.remove('hidden');
+                productInput.classList.add('hidden');
+                floorNumberInput.classList.add('hidden');
+            } else if (this.value === 'الصعود لدور عالي') {
+                governorateInput.classList.add('hidden');
+                productInput.classList.remove('hidden');
+                floorNumberInput.classList.remove('hidden');
+            } else {
+                governorateInput.classList.add('hidden');
+                productInput.classList.add('hidden');
+                floorNumberInput.classList.add('hidden');
+            }
+        });
+
+        function loadDriversAndDelegates() {
+            const driversRef = ref(database, 'drivers');
+            const delegatesRef = ref(database, 'delegates');
+
+            onValue(driversRef, (snapshot) => {
+                const driverSelect = document.getElementById('driverInput');
+                driverSelect.innerHTML = '<option value="">اختر اسم السائق</option>';
+                snapshot.forEach((childSnapshot) => {
+                    const driverName = childSnapshot.val();
+                    const option = document.createElement('option');
+                    option.value = driverName;
+                    option.textContent = driverName;
+                    driverSelect.appendChild(option);
+                });
+            });
+
+            onValue(delegatesRef, (snapshot) => {
+                const delegateDatalist = document.getElementById('delegateList');
+                if (!delegateDatalist) {
+                    const newDatalist = document.createElement('datalist');
+                    newDatalist.id = 'delegateList';
+                    document.body.appendChild(newDatalist);
+                    document.getElementById('delegateInput').setAttribute('list', 'delegateList');
+                }
+                delegateDatalist.innerHTML = '';
+                snapshot.forEach((childSnapshot) => {
+                    const delegateName = childSnapshot.val();
+                    const option = document.createElement('option');
+                    option.value = delegateName;
+                    delegateDatalist.appendChild(option);
+                });
+            });
+        }
+
+        receiptForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            if (!confirm('هل أنت متأكد من صحة البيانات المدخلة؟')) {
+                return;
+            }
+
+            const receiptData = {
+                date: document.getElementById('receiptDateInput').value,
+                driver: document.getElementById('driverInput').value,
+                delegate: document.getElementById('delegateInput').value,
+                receiptType: receiptTypeInput.value,
+                carNumber: document.getElementById('carNumberInput').value,
+                userEmail: currentUserEmail
+            };
+
+            if (receiptTypeInput.value === 'بدل مبيت') {
+                receiptData.governorate = governorateInput.value;
+            }
+
+            if (receiptTypeInput.value === 'الصعود لدور عالي') {
+                receiptData.product = productInput.value;
+                receiptData.floorNumber = floorNumberInput.value;
+            }
+
+            push(ref(database, 'receipts'), receiptData)
+                .then(() => {
+                    document.getElementById('message').textContent = 'تم تسجيل الإيصال بنجاح!';
+                    receiptForm.reset();
+                    governorateInput.classList.add('hidden');
+                    productInput.classList.add('hidden');
+                    floorNumberInput.classList.add('hidden');
+                })
+                .catch((error) => {
+                    document.getElementById('message').textContent = 'حدث خطأ: ' + error.message;
+                });
+        });
+
+        loadDriversAndDelegates();
+    </script>
+</body>
+</html>

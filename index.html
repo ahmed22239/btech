@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>الصفحة الرئيسية</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+            display: none;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            text-align: center;
+            max-width: 300px;
+            margin: 0 auto;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+            padding: 15px 30px;
+            margin: 10px 0;
+            font-size: 16px;
+            border-radius: 5px;
+            display: block;
+            width: 100%;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        #logoutButton {
+            background-color: #f44336;
+        }
+        #logoutButton:hover {
+            background-color: #d32f2f;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>الصفحة الرئيسية</h1>
+
+        <!-- زر تسجيل مأمورية جديدة -->
+        <button id="newMissionButton">تسجيل مأمورية جديدة</button>
+
+        <!-- زر تسجيل إيصال جديد -->
+        <button id="newReceiptButton">تسجيل إيصال جديد</button>
+
+        <!-- زر عرض البيانات المسجلة -->
+        <button id="viewDataButton">عرض البيانات المسجلة</button>
+
+        <button id="logoutButton">تسجيل الخروج</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAf9OuANGnp9WNDad6n7ky7K7v9mtNsEzI",
+            authDomain: "ahmed-15d52.firebaseapp.com",
+            databaseURL: "https://ahmed-15d52-default-rtdb.firebaseio.com",
+            projectId: "ahmed-15d52",
+            storageBucket: "ahmed-15d52.appspot.com",
+            messagingSenderId: "103191449244",
+            appId: "1:103191449244:web:c33ae04fd0473010da2759",
+            measurementId: "G-WF6LYR9F3D"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                document.body.style.display = 'block';
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        // وظائف الأزرار
+        document.getElementById('newMissionButton').addEventListener('click', function() {
+            window.location.href = 'new_mission.html';  // رابط إلى صفحة تسجيل المأمورية الجديدة
+        });
+
+        document.getElementById('newReceiptButton').addEventListener('click', function() {
+            window.location.href = 'new_receipt.html';  // رابط إلى صفحة تسجيل الإيصال الجديد
+        });
+
+        document.getElementById('viewDataButton').addEventListener('click', function() {
+            window.location.href = 'view_data.html';  // رابط إلى صفحة عرض البيانات المسجلة
+        });
+
+        document.getElementById('logoutButton').addEventListener('click', function() {
+            signOut(auth).then(() => {
+                window.location.href = 'login.html';
+            }).catch((error) => {
+                console.error('Error signing out:', error);
+            });
+        });
+    </script>
+</body>
+</html>

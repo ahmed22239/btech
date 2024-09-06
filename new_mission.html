@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>تسجيل مأمورية جديدة</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        input, select, button, textarea {
+            display: block;
+            width: 100%;
+            margin-bottom: 10px;
+            padding: 10px;
+            box-sizing: border-box;
+        }
+        textarea {
+            height: 100px;
+            resize: vertical;
+        }
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.4);
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: 15% auto;
+            padding: 20px;
+            border: 1px solid #888;
+            width: 80%;
+            max-width: 500px;
+        }
+        .close {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+        }
+        .close:hover,
+        .close:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+        #adminPanel {
+            display: none;
+            margin-top: 20px;
+            padding: 20px;
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        #adminPanel h3 {
+            margin-top: 0;
+        }
+        #adminPanel input[type="text"] {
+            width: calc(100% - 110px);
+            display: inline-block;
+        }
+        #adminPanel button {
+            width: 100px;
+            display: inline-block;
+            margin-left: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>تسجيل مأمورية جديدة</h2>
+        <form id="missionForm">
+            <input type="date" id="dateInput" required>
+            <select id="driverInput" required>
+                <option value="">اختر اسم السائق</option>
+            </select>
+            <input type="text" id="carNumberInput" placeholder="رقم السيارة" required>
+            <select id="delegateInput" required>
+                <option value="">اختر اسم المندوب</option>
+            </select>
+            <input type="text" id="directionInput" placeholder="اتجاه الرحلة" required>
+            <input type="text" id="tourNumberInput" placeholder="رقم الجولة أو الإذن" required>
+            <input type="number" id="startOdometerInput" placeholder="عداد البداية" required>
+            <input type="number" id="endOdometerInput" placeholder="عداد النهاية" required>
+            <select id="tripDaysInput" required>
+                <option value="">اختر عدد أيام الرحلة</option>
+                <option value="1">1</option>
+                <option value="2">2</option>
+                <option value="3">3</option>
+            </select>
+            <select id="overnightAllowanceInput" required>
+                <option value="">هل يوجد بدل مبيت؟</option>
+                <option value="نعم">نعم</option>
+                <option value="لا">لا</option>
+            </select>
+            <textarea id="notesInput" placeholder="ملاحظات"></textarea>
+            <button type="submit">تسجيل</button>
+        </form>
+        <div id="message"></div>
+    </div>
+
+    <div id="overnightModal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <p>في حالة المبيت خارج فندق يتم عمل إيصال من قائمة الإيصالات</p>
+        </div>
+    </div>
+
+    <div id="adminPanel">
+        <h3>لوحة التحكم الإدارية</h3>
+        <div>
+            <input type="text" id="newDriverInput" placeholder="اسم السائق الجديد">
+            <button onclick="addDriver()">إضافة سائق</button>
+        </div>
+        <div>
+            <input type="text" id="removeDriverInput" placeholder="اسم السائق المراد حذفه">
+            <button onclick="removeDriver()">حذف سائق</button>
+        </div>
+        <div>
+            <input type="text" id="newDelegateInput" placeholder="اسم المندوب الجديد">
+            <button onclick="addDelegate()">إضافة مندوب</button>
+        </div>
+        <div>
+            <input type="text" id="removeDelegateInput" placeholder="اسم المندوب المراد حذفه">
+            <button onclick="removeDelegate()">حذف مندوب</button>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+        import { getDatabase, ref, push, set, get, remove } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyAf9OuANGnp9WNDad6n7ky7K7v9mtNsEzI",
+            authDomain: "ahmed-15d52.firebaseapp.com",
+            databaseURL: "https://ahmed-15d52-default-rtdb.firebaseio.com",
+            projectId: "ahmed-15d52",
+            storageBucket: "ahmed-15d52.appspot.com",
+            messagingSenderId: "103191449244",
+            appId: "1:103191449244:web:c33ae04fd0473010da2759",
+            measurementId: "G-WF6LYR9F3D"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const auth = getAuth(app);
+
+        let currentUserEmail = '';
+        const adminEmail = 'ahmed29944@btech.com';
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUserEmail = user.email;
+                if (currentUserEmail === adminEmail) {
+                    document.getElementById('adminPanel').style.display = 'block';
+                }
+                loadDriversAndDelegates();
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        const missionForm = document.getElementById('missionForm');
+        const modal = document.getElementById('overnightModal');
+        const span = document.getElementsByClassName("close")[0];
+
+        document.getElementById('carNumberInput').addEventListener('blur', function() {
+            const carNumber = this.value.trim();
+            if (carNumber) {
+                const confirmation = confirm('هل أنت متأكد من رقم السيارة؟ في حالة وجود خطأ لم يتم صرف المأمورية.');
+                if (!confirmation) {
+                    this.value = '';
+                    this.focus();
+                }
+            }
+        });
+
+        document.getElementById('tripDaysInput').addEventListener('change', function() {
+            const tripDays = document.getElementById('tripDaysInput').value;
+            if (tripDays === "1") {
+                confirm('هل أنت متأكد الذهاب والعودة في نفس اليوم؟');
+            } else if (tripDays === "2") {
+                confirm('هل أنت متأكد الرجوع ثاني يوم من المأمورية؟');
+            } else if (tripDays === "3") {
+                confirm('هل أنت متأكد الرجوع ثالث يوم من المأمورية؟');
+            }
+        });
+
+        document.getElementById('overnightAllowanceInput').addEventListener('change', function() {
+            if (this.value === "نعم") {
+                modal.style.display = "block";
+            }
+        });
+
+        span.onclick = function() {
+            modal.style.display = "none";
+        }
+
+        window.onclick = function(event) {
+            if (event.target == modal) {
+                modal.style.display = "none";
+            }
+        }
+
+        missionForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            const missionData = {
+                date: document.getElementById('dateInput').value,
+                driver: document.getElementById('driverInput').value,
+                carNumber: document.getElementById('carNumberInput').value,
+                delegate: document.getElementById('delegateInput').value,
+                direction: document.getElementById('directionInput').value,
+                tourNumber: document.getElementById('tourNumberInput').value,
+                startOdometer: document.getElementById('startOdometerInput').value,
+                endOdometer: document.getElementById('endOdometerInput').value,
+                tripDays: document.getElementById('tripDaysInput').value,
+                overnightAllowance: document.getElementById('overnightAllowanceInput').value,
+                notes: document.getElementById('notesInput').value,
+                userEmail: currentUserEmail
+            };
+
+            push(ref(database, 'missions'), missionData)
+                .then(() => {
+                    document.getElementById('message').textContent = 'تم تسجيل المأمورية بنجاح!';
+                    missionForm.reset();
+                })
+                .catch((error) => {
+                    document.getElementById('message').textContent = 'حدث خطأ: ' + error.message;
+                });
+        });
+
+        function loadDriversAndDelegates() {
+            const driversRef = ref(database, 'drivers');
+            const delegatesRef = ref(database, 'delegates');
+
+            get(driversRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const driverSelect = document.getElementById('driverInput');
+                    driverSelect.innerHTML = '<option value="">اختر اسم السائق</option>';
+                    snapshot.forEach((childSnapshot) => {
+                        const driverName = childSnapshot.val();
+                        const option = document.createElement('option');
+                        option.value = driverName;
+                        option.textContent = driverName;
+                        driverSelect.appendChild(option);
+                    });
+                }
+            });
+
+            get(delegatesRef).then((snapshot) => {
+                if (snapshot.exists()) {
+                    const delegateSelect = document.getElementById('delegateInput');
+                    delegateSelect.innerHTML = '<option value="">اختر اسم المندوب</option>';
+                    snapshot.forEach((childSnapshot) => {
+                        const delegateName = childSnapshot.val();
+                        const option = document.createElement('option');
+                        option.value = delegateName;
+                        option.textContent = delegateName;
+                        delegateSelect.appendChild(option);
+                    });
+                }
+            });
+        }
+
+        window.addDriver = function() {
+            const newDriver = document.getElementById('newDriverInput').value.trim();
+            if (newDriver) {
+                push(ref(database, 'drivers'), newDriver)
+                    .then(() => {
+                        alert('تمت إضافة السائق بنجاح');
+                        document.getElementById('newDriverInput').value = '';
+                        loadDriversAndDelegates();
+                    })
+                    .catch((error) => {
+                        alert('حدث خطأ: ' + error.message);
+                    });
+            }
+        }
+
+        window.removeDriver = function() {
+            const driverToRemove = document.getElementById('removeDriverInput').value.trim();
+            if (driverToRemove) {
+                const driversRef = ref(database, 'drivers');
+                get(driversRef).then((snapshot) => {
+                    if (snapshot.exists()) {
+                        snapshot.forEach((childSnapshot) => {
+                            if (childSnapshot.val() === driverToRemove) {
+                                remove(childSnapshot.ref)
+                                    .then(() => {
+                                        alert('تم حذف السائق بنجاح');
+                                        document.getElementById('removeDriverInput').value = '';
+                                        loadDriversAndDelegates();
+                                    })
+                                    .catch((error) => {
+                                        alert('حدث خطأ: ' + error.message);
+                                    });
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
+        window.addDelegate = function() {
+            const newDelegate = document.getElementById('newDelegateInput').value.trim();
+            if (newDelegate) {
+                push(ref(database, 'delegates'), newDelegate)
+                    .then(() => {
+                        alert('تمت إضافة المندوب بنجاح');
+                        document.getElementById('newDelegateInput').value = '';
+                        loadDriversAndDelegates();
+                    })
+                    .catch((error) => {
+                        alert('حدث خطأ: ' + error.message);
+                    });
+            }
+        }
+
+        window.removeDelegate = function() {
+            const delegateToRemove = document.getElementById('removeDelegateInput').value.trim();
+            if (delegateToRemove) {
+                const delegatesRef = ref(database, 'delegates');
+                get(delegatesRef).then((snapshot) => {
+                    if (snapshot.exists()) {
+                        snapshot.forEach((childSnapshot) => {
+                            if (childSnapshot.val() === delegateToRemove) {
+                                remove(childSnapshot.ref)
+                                    .then(() => {
+                                        alert('تم حذف المندوب بنجاح');
+                                        document.getElementById('removeDelegateInput').value = '';
+                                        loadDriversAndDelegates();
+                                    })
+                                    .catch((error) => {
+                                        alert('حدث خطأ: ' + error.message);
+                                    });
+                            }
+                        });
+                    }
+                });
+            }
+        }
+
+        loadDriversAndDelegates();
+    </script>
+</body>
+</html>
