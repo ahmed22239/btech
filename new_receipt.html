@@ -64,6 +64,7 @@
                 <option value="تكييف 3 حصان">تكييف 3 حصان</option>
             </select>
             <input type="number" id="floorNumberInput" placeholder="رقم الدور" class="hidden">
+            <input type="text" id="orderNumberInput" placeholder="رقم الطلب" class="hidden">
             <button type="submit">تسجيل</button>
         </form>
         <div id="message"></div>
@@ -105,20 +106,24 @@
         const governorateInput = document.getElementById('governorateInput');
         const productInput = document.getElementById('productInput');
         const floorNumberInput = document.getElementById('floorNumberInput');
+        const orderNumberInput = document.getElementById('orderNumberInput');
 
         receiptTypeInput.addEventListener('change', function() {
             if (this.value === 'بدل مبيت') {
                 governorateInput.classList.remove('hidden');
                 productInput.classList.add('hidden');
                 floorNumberInput.classList.add('hidden');
+                orderNumberInput.classList.add('hidden');
             } else if (this.value === 'الصعود لدور عالي') {
                 governorateInput.classList.add('hidden');
                 productInput.classList.remove('hidden');
                 floorNumberInput.classList.remove('hidden');
+                orderNumberInput.classList.remove('hidden');
             } else {
                 governorateInput.classList.add('hidden');
                 productInput.classList.add('hidden');
                 floorNumberInput.classList.add('hidden');
+                orderNumberInput.classList.add('hidden');
             }
         });
 
@@ -179,6 +184,7 @@
             if (receiptTypeInput.value === 'الصعود لدور عالي') {
                 receiptData.product = productInput.value;
                 receiptData.floorNumber = floorNumberInput.value;
+                receiptData.orderNumber = orderNumberInput.value;
             }
 
             push(ref(database, 'receipts'), receiptData)
@@ -188,6 +194,7 @@
                     governorateInput.classList.add('hidden');
                     productInput.classList.add('hidden');
                     floorNumberInput.classList.add('hidden');
+                    orderNumberInput.classList.add('hidden');
                 })
                 .catch((error) => {
                     document.getElementById('message').textContent = 'حدث خطأ: ' + error.message;
