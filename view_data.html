@@ -93,6 +93,16 @@
             background-color: #F8D7DA;
             color: #721C24;
         }
+        input[type="text"] {
+            padding: 5px;
+            margin: 5px 0;
+            width: 200px;
+        }
+        button {
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
         @media screen and (max-width: 600px) {
             table {
                 font-size: 12px;
@@ -110,6 +120,7 @@
 <body>
     <div class="container">
         <h2>بيانات المأموريات المسجلة</h2>
+        <input type="text" id="missionSearchInput" placeholder="ابحث في المأموريات..." oninput="searchMissions()">
         <button class="download-btn" onclick="downloadExcel('missions')">تحميل بيانات المأموريات (Excel)</button>
         <div style="overflow-x: auto;">
             <table id="missionsTable">
@@ -137,6 +148,7 @@
         </div>
 
         <h2>بيانات الإيصالات المسجلة</h2>
+        <input type="text" id="receiptSearchInput" placeholder="ابحث في الإيصالات..." oninput="searchReceipts()">
         <button class="download-btn" onclick="downloadExcel('receipts')">تحميل بيانات الإيصالات (Excel)</button>
         <div style="overflow-x: auto;">
             <table id="receiptsTable">
@@ -145,12 +157,13 @@
                         <th>التاريخ</th>
                         <th>اسم السائق</th>
                         <th>اسم المندوب</th>
-                        <th>رقم السيارة</th> 
-                        <th>نوع الإيصال</th> 
+                        <th>رقم السيارة</th>
+                        <th>نوع الإيصال</th>
                         <th>حالة الإيصال</th>
                         <th>المحافظة</th>
                         <th>المنتج</th>
                         <th>رقم الدور</th>
+                        <th>رقم الطلب</th>
                         <th>ملاحظات</th>
                         <th id="receiptEmailHeader" style="display: none;">البريد الإلكتروني للمسجل</th>
                         <th>تعديل</th>
@@ -210,6 +223,7 @@
             <option value="تكييف 3 حصان">تكييف 3 حصان</option>
         </select>
         <input type="number" id="editReceiptFloorNumber" placeholder="رقم الدور">
+        <input type="text" id="editReceiptOrderNumber" placeholder="رقم الطلب">
         <textarea id="editReceiptNotes" placeholder="ملاحظات"></textarea>
         <select id="editReceiptStatus" class="status-select" style="display: none;">
             <option value="جاري المراجعة">جاري المراجعة</option>
@@ -291,7 +305,7 @@
                         <td>${mission.carNumber || ''}</td>
                         <td>${mission.delegate || ''}</td>
                         <td>${mission.direction || ''}</td>
-                        <td>${mission.tourNumber || ''}</td>
+                                                <td>${mission.tourNumber || ''}</td>
                         <td>${mission.startOdometer || ''}</td>
                         <td>${mission.endOdometer || ''}</td>
                         <td>${mission.tripDays || ''}</td>
@@ -299,7 +313,7 @@
                         <td class="${statusClass}">${mission.status || 'جاري المراجعة'}</td>
                         <td>${mission.notes || ''}</td>
                         ${isAdmin ? `<td>${mission.userEmail || ''}</td>` : ''}
-                                                <td><button class="edit-btn" onclick="openEditMissionForm('${id}')" ${mission.status === 'تم المراجعة' && !isAdmin ? 'disabled' : ''}>تعديل</button></td>
+                        <td><button class="edit-btn" onclick="openEditMissionForm('${id}')" ${mission.status === 'تم المراجعة' && !isAdmin ? 'disabled' : ''}>تعديل</button></td>
                         ${isAdmin ? `<td><button class="delete-btn" onclick="deleteMission('${id}')">حذف</button></td>` : ''}
                     </tr>`;
                     missionsTableBody.innerHTML += row;
@@ -327,6 +341,7 @@
                         <td>${receipt.governorate || ''}</td>
                         <td>${receipt.product || ''}</td>
                         <td>${receipt.floorNumber || ''}</td>
+                        <td>${receipt.orderNumber || ''}</td>
                         <td>${receipt.notes || ''}</td>
                         ${isAdmin ? `<td>${receipt.userEmail || ''}</td>` : ''}
                         <td><button class="edit-btn" onclick="openEditReceiptForm('${id}')" ${receipt.status === 'تم المراجعة' && !isAdmin ? 'disabled' : ''}>تعديل</button></td>
@@ -373,6 +388,7 @@
                 document.getElementById('editReceiptGovernorate').value = receipt.governorate || '';
                 document.getElementById('editReceiptProduct').value = receipt.product || '';
                 document.getElementById('editReceiptFloorNumber').value = receipt.floorNumber || '';
+                document.getElementById('editReceiptOrderNumber').value = receipt.orderNumber || '';
                 document.getElementById('editReceiptNotes').value = receipt.notes || '';
                 if (isAdmin) {
                     document.getElementById('editReceiptStatus').value = receipt.status || 'جاري المراجعة';
@@ -414,6 +430,7 @@
                 governorate: document.getElementById('editReceiptGovernorate').value,
                 product: document.getElementById('editReceiptProduct').value,
                 floorNumber: document.getElementById('editReceiptFloorNumber').value,
+                orderNumber: document.getElementById('editReceiptOrderNumber').value,
                 notes: document.getElementById('editReceiptNotes').value
             };
             if (isAdmin) {
@@ -517,14 +534,59 @@
                     'المحافظة': row.cells[6].innerText,
                     'المنتج': row.cells[7].innerText,
                     'رقم الدور': row.cells[8].innerText,
-                    'ملاحظات': row.cells[9].innerText
+                    'رقم الطلب': row.cells[9].innerText,
+                    'ملاحظات': row.cells[10].innerText
                 };
                 if (isAdmin) {
-                    rowData['البريد الإلكتروني للمسجل'] = row.cells[10].innerText;
+                    rowData['البريد الإلكتروني للمسجل'] = row.cells[11].innerText;
                 }
                 data.push(rowData);
             }
             return data;
+        }
+
+        window.searchMissions = function() {
+            const input = document.getElementById('missionSearchInput');
+            const filter = input.value.toUpperCase();
+            const table = document.getElementById('missionsTable');
+            const tr = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < tr.length; i++) {
+                let visible = false;
+                const td = tr[i].getElementsByTagName("td");
+                for (let j = 0; j < td.length; j++) {
+                    if (td[j]) {
+                        let txtValue = td[j].textContent || td[j].innerText;
+                        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                            visible = true;
+                            break;
+                        }
+                    }
+                }
+                tr[i].style.display = visible ? "" : "none";
+            }
+        }
+
+        window.searchReceipts = function() {
+            const input = document.getElementById('receiptSearchInput');
+            const filter = input.value.toUpperCase();
+            const table = document.getElementById('receiptsTable');
+            const tr = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < tr.length; i++) {
+                let visible = false;
+                const td = tr[i].getElementsByTagName("td");
+                for (let j = 0; j < td.length; j++) {
+                    if (td[j]) {
+                        let txtValue = td[j].textContent || td[j].innerText;
+                        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                            visible = true;
+                            break;
+                        }
+                    }
+                }
+                tr[i].style.display = visible ? "" : "none";
+            }
         }
     </script>
 </body>
