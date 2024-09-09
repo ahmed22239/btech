@@ -164,6 +164,7 @@
                         <th>المنتج</th>
                         <th>رقم الدور</th>
                         <th>رقم الطلب</th>
+                        <th>وقت التأخير</th>
                         <th>ملاحظات</th>
                         <th id="receiptEmailHeader" style="display: none;">البريد الإلكتروني للمسجل</th>
                         <th>تعديل</th>
@@ -213,6 +214,7 @@
             <option value="بدل 3 نقلات من المخزن">بدل 3 نقلات من المخزن</option>
             <option value="بدل 2 نقله خارجي">بدل 2 نقله خارجي</option>
             <option value="الصعود لدور عالي">الصعود لدور عالي</option>
+            <option value="بدل تأخير">بدل تأخير</option>
         </select>
         <input type="text" id="editReceiptGovernorate" placeholder="المحافظة">
         <select id="editReceiptProduct">
@@ -224,6 +226,7 @@
         </select>
         <input type="number" id="editReceiptFloorNumber" placeholder="رقم الدور">
         <input type="text" id="editReceiptOrderNumber" placeholder="رقم الطلب">
+        <input type="time" id="editReceiptDelayTime" placeholder="وقت التأخير">
         <textarea id="editReceiptNotes" placeholder="ملاحظات"></textarea>
         <select id="editReceiptStatus" class="status-select" style="display: none;">
             <option value="جاري المراجعة">جاري المراجعة</option>
@@ -305,7 +308,7 @@
                         <td>${mission.carNumber || ''}</td>
                         <td>${mission.delegate || ''}</td>
                         <td>${mission.direction || ''}</td>
-                                                <td>${mission.tourNumber || ''}</td>
+                        <td>${mission.tourNumber || ''}</td>
                         <td>${mission.startOdometer || ''}</td>
                         <td>${mission.endOdometer || ''}</td>
                         <td>${mission.tripDays || ''}</td>
@@ -342,6 +345,7 @@
                         <td>${receipt.product || ''}</td>
                         <td>${receipt.floorNumber || ''}</td>
                         <td>${receipt.orderNumber || ''}</td>
+                        <td>${receipt.delayTime || ''}</td>
                         <td>${receipt.notes || ''}</td>
                         ${isAdmin ? `<td>${receipt.userEmail || ''}</td>` : ''}
                         <td><button class="edit-btn" onclick="openEditReceiptForm('${id}')" ${receipt.status === 'تم المراجعة' && !isAdmin ? 'disabled' : ''}>تعديل</button></td>
@@ -389,6 +393,7 @@
                 document.getElementById('editReceiptProduct').value = receipt.product || '';
                 document.getElementById('editReceiptFloorNumber').value = receipt.floorNumber || '';
                 document.getElementById('editReceiptOrderNumber').value = receipt.orderNumber || '';
+                document.getElementById('editReceiptDelayTime').value = receipt.delayTime || '';
                 document.getElementById('editReceiptNotes').value = receipt.notes || '';
                 if (isAdmin) {
                     document.getElementById('editReceiptStatus').value = receipt.status || 'جاري المراجعة';
@@ -431,6 +436,7 @@
                 product: document.getElementById('editReceiptProduct').value,
                 floorNumber: document.getElementById('editReceiptFloorNumber').value,
                 orderNumber: document.getElementById('editReceiptOrderNumber').value,
+                delayTime: document.getElementById('editReceiptDelayTime').value,
                 notes: document.getElementById('editReceiptNotes').value
             };
             if (isAdmin) {
@@ -535,10 +541,11 @@
                     'المنتج': row.cells[7].innerText,
                     'رقم الدور': row.cells[8].innerText,
                     'رقم الطلب': row.cells[9].innerText,
-                    'ملاحظات': row.cells[10].innerText
+                    'وقت التأخير': row.cells[10].innerText,
+                    'ملاحظات': row.cells[11].innerText
                 };
                 if (isAdmin) {
-                    rowData['البريد الإلكتروني للمسجل'] = row.cells[11].innerText;
+                    rowData['البريد الإلكتروني للمسجل'] = row.cells[12].innerText;
                 }
                 data.push(rowData);
             }
@@ -563,31 +570,13 @@
                         }
                     }
                 }
-                tr[i].style.display = visible ? "" : "none";
+                                tr[i].style.display = visible ? "" : "none";
             }
         }
 
-        window.searchReceipts = function() {
-            const input = document.getElementById('receiptSearchInput');
-            const filter = input.value.toUpperCase();
-            const table = document.getElementById('receiptsTable');
-            const tr = table.getElementsByTagName('tr');
-
-            for (let i = 1; i < tr.length; i++) {
-                let visible = false;
-                const td = tr[i].getElementsByTagName("td");
-                for (let j = 0; j < td.length; j++) {
-                    if (td[j]) {
-                        let txtValue = td[j].textContent || td[j].innerText;
-                        if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                            visible = true;
-                            break;
-                        }
-                    }
-                }
-                tr[i].style.display = visible ? "" : "none";
-            }
-        }
+        // Initialize the page
+        fetchAndDisplayMissions();
+        fetchAndDisplayReceipts();
     </script>
 </body>
 </html>
