@@ -53,6 +53,7 @@
                 <option value="بدل 3 نقلات من المخزن">بدل 3 نقلات من المخزن</option>
                 <option value="بدل 2 نقله خارجي">بدل 2 نقله خارجي</option>
                 <option value="الصعود لدور عالي">الصعود لدور عالي</option>
+                <option value="بدل تأخير">بدل تأخير</option>
             </select>
             <input type="text" id="carNumberInput" placeholder="رقم السيارة" required>
             <input type="text" id="governorateInput" placeholder="المحافظة" class="hidden">
@@ -65,6 +66,7 @@
             </select>
             <input type="number" id="floorNumberInput" placeholder="رقم الدور" class="hidden">
             <input type="text" id="orderNumberInput" placeholder="رقم الطلب" class="hidden">
+            <input type="time" id="delayTimeInput" placeholder="وقت التأخير" class="hidden">
             <button type="submit">تسجيل</button>
         </form>
         <div id="message"></div>
@@ -107,6 +109,7 @@
         const productInput = document.getElementById('productInput');
         const floorNumberInput = document.getElementById('floorNumberInput');
         const orderNumberInput = document.getElementById('orderNumberInput');
+        const delayTimeInput = document.getElementById('delayTimeInput');
 
         receiptTypeInput.addEventListener('change', function() {
             if (this.value === 'بدل مبيت') {
@@ -114,16 +117,25 @@
                 productInput.classList.add('hidden');
                 floorNumberInput.classList.add('hidden');
                 orderNumberInput.classList.add('hidden');
+                delayTimeInput.classList.add('hidden');
             } else if (this.value === 'الصعود لدور عالي') {
                 governorateInput.classList.add('hidden');
                 productInput.classList.remove('hidden');
                 floorNumberInput.classList.remove('hidden');
                 orderNumberInput.classList.remove('hidden');
+                delayTimeInput.classList.add('hidden');
+            } else if (this.value === 'بدل تأخير') {
+                governorateInput.classList.add('hidden');
+                productInput.classList.add('hidden');
+                floorNumberInput.classList.add('hidden');
+                orderNumberInput.classList.add('hidden');
+                delayTimeInput.classList.remove('hidden');
             } else {
                 governorateInput.classList.add('hidden');
                 productInput.classList.add('hidden');
                 floorNumberInput.classList.add('hidden');
                 orderNumberInput.classList.add('hidden');
+                delayTimeInput.classList.add('hidden');
             }
         });
 
@@ -187,6 +199,10 @@
                 receiptData.orderNumber = orderNumberInput.value;
             }
 
+            if (receiptTypeInput.value === 'بدل تأخير') {
+                receiptData.delayTime = delayTimeInput.value;
+            }
+
             push(ref(database, 'receipts'), receiptData)
                 .then(() => {
                     document.getElementById('message').textContent = 'تم تسجيل الإيصال بنجاح!';
@@ -195,6 +211,7 @@
                     productInput.classList.add('hidden');
                     floorNumberInput.classList.add('hidden');
                     orderNumberInput.classList.add('hidden');
+                    delayTimeInput.classList.add('hidden');
                 })
                 .catch((error) => {
                     document.getElementById('message').textContent = 'حدث خطأ: ' + error.message;
