@@ -34,6 +34,7 @@
         th {
             background-color: #4CAF50;
             color: white;
+            cursor: pointer;
         }
         tr:nth-child(even) {
             background-color: #f2f2f2;
@@ -120,7 +121,7 @@
 <body>
     <div class="container">
         <h2>بيانات المأموريات المسجلة</h2>
-        <input type="text" id="missionSearchInput" placeholder="ابحث في المأموريات..." oninput="searchMissions()">
+        <input type="text" id="missionSearchInput" placeholder="ابحث في المأموريات..." oninput="searchTable('missionsTable', 'missionSearchInput')">
         <button class="download-btn" onclick="downloadExcel('missions')">تحميل بيانات المأموريات (Excel)</button>
         <div style="overflow-x: auto;">
             <table id="missionsTable">
@@ -148,7 +149,7 @@
         </div>
 
         <h2>بيانات الإيصالات المسجلة</h2>
-        <input type="text" id="receiptSearchInput" placeholder="ابحث في الإيصالات..." oninput="searchReceipts()">
+        <input type="text" id="receiptSearchInput" placeholder="ابحث في الإيصالات..." oninput="searchTable('receiptsTable', 'receiptSearchInput')">
         <button class="download-btn" onclick="downloadExcel('receipts')">تحميل بيانات الإيصالات (Excel)</button>
         <div style="overflow-x: auto;">
             <table id="receiptsTable">
@@ -239,7 +240,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-        import { getDatabase, ref, onValue, query, orderByChild, equalTo, update, remove } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+        import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -302,6 +303,7 @@
                     const mission = data[id];
                     if (!isAdmin && mission.userEmail !== currentUserEmail) continue;
                     const statusClass = getStatusClass(mission.status);
+                    const isEditable = (mission.status !== 'تم المراجعة' && mission.status !== 'تم الرفض') || isAdmin;
                     const row = `<tr>
                         <td>${mission.date || ''}</td>
                         <td>${mission.driver || ''}</td>
@@ -316,7 +318,7 @@
                         <td class="${statusClass}">${mission.status || 'جاري المراجعة'}</td>
                         <td>${mission.notes || ''}</td>
                         ${isAdmin ? `<td>${mission.userEmail || ''}</td>` : ''}
-                        <td><button class="edit-btn" onclick="openEditMissionForm('${id}')" ${mission.status === 'تم المراجعة' && !isAdmin ? 'disabled' : ''}>تعديل</button></td>
+                        <td><button class="edit-btn" onclick="openEditMissionForm('${id}')" ${!isEditable ? 'disabled' : ''}>تعديل</button></td>
                         ${isAdmin ? `<td><button class="delete-btn" onclick="deleteMission('${id}')">حذف</button></td>` : ''}
                     </tr>`;
                     missionsTableBody.innerHTML += row;
@@ -334,6 +336,7 @@
                     const receipt = data[id];
                     if (!isAdmin && receipt.userEmail !== currentUserEmail) continue;
                     const statusClass = getStatusClass(receipt.status);
+                    const isEditable = (receipt.status !== 'تم المراجعة' && receipt.status !== 'تم الرفض') || isAdmin;
                     const row = `<tr>
                         <td>${receipt.date || ''}</td>
                         <td>${receipt.driver || ''}</td>
@@ -348,7 +351,7 @@
                         <td>${receipt.delayTime || ''}</td>
                         <td>${receipt.notes || ''}</td>
                         ${isAdmin ? `<td>${receipt.userEmail || ''}</td>` : ''}
-                        <td><button class="edit-btn" onclick="openEditReceiptForm('${id}')" ${receipt.status === 'تم المراجعة' && !isAdmin ? 'disabled' : ''}>تعديل</button></td>
+                        <td><button class="edit-btn" onclick="openEditReceiptForm('${id}')" ${!isEditable ? 'disabled' : ''}>تعديل</button></td>
                         ${isAdmin ? `<td><button class="delete-btn" onclick="deleteReceipt('${id}')">حذف</button></td>` : ''}
                     </tr>`;
                     receiptsTableBody.innerHTML += row;
@@ -552,10 +555,11 @@
             return data;
         }
 
-        window.searchMissions = function() {
-            const input = document.getElementById('missionSearchInput');
+        // Unified search function for both tables
+        window.searchTable = function(tableId, inputId) {
+            const input = document.getElementById(inputId);
             const filter = input.value.toUpperCase();
-            const table = document.getElementById('missionsTable');
+            const table = document.getElementById(tableId);
             const tr = table.getElementsByTagName('tr');
 
             for (let i = 1; i < tr.length; i++) {
@@ -570,9 +574,51 @@
                         }
                     }
                 }
-                                tr[i].style.display = visible ? "" : "none";
+                tr[i].style.display = visible ? "" : "none";
             }
         }
+
+        // Function to sort table columns
+        function sortTable(tableId, colIndex, asc = true) {
+            const table = document.getElementById(tableId);
+            const tbody = table.tBodies[0];
+            const rowsArray = Array.from(tbody.rows);
+
+            rowsArray.sort((rowA, rowB) => {
+                const cellA = rowA.cells[colIndex].textContent.trim();
+                const cellB = rowB.cells[colIndex].textContent.trim();
+
+                if (!isNaN(cellA) && !isNaN(cellB)) {
+                    // Compare numbers
+                    return asc ? cellA - cellB : cellB - cellA;
+                } else {
+                    // Compare strings
+                    return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+                }
+            });
+
+            // Append sorted rows to the table body
+            rowsArray.forEach(row => tbody.appendChild(row));
+        }
+
+        // Adding click listeners to table headers for sorting
+        document.querySelectorAll('#missionsTable th, #receiptsTable th').forEach((header, index) => {
+            let asc = true; // Ascending order flag
+            header.addEventListener('click', () => {
+                const tableId = header.closest('table').id;
+                sortTable(tableId, index, asc);
+                asc = !asc; // Toggle the sorting order
+            });
+        });
+
+        document.querySelectorAll('#receiptsTable th').forEach((header, index) => {
+    let asc = true; // Ascending order flag
+    header.addEventListener('click', () => {
+        const tableId = header.closest('table').id;
+        sortTable(tableId, index, asc);
+        asc = !asc; // Toggle the sorting order
+    });
+});
 
         // Initialize the page
         fetchAndDisplayMissions();
