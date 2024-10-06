@@ -123,10 +123,12 @@
         <h2>بيانات المأموريات المسجلة</h2>
         <input type="text" id="missionSearchInput" placeholder="ابحث في المأموريات..." oninput="searchTable('missionsTable', 'missionSearchInput')">
         <button class="download-btn" onclick="downloadExcel('missions')">تحميل بيانات المأموريات (Excel)</button>
+        <button id="bulkEditMissionBtn" class="edit-btn" onclick="openBulkEditMissionForm()" style="display: none;">تعديل جماعي للمأموريات</button>
         <div style="overflow-x: auto;">
             <table id="missionsTable">
                 <thead>
                     <tr>
+                        <th id="selectAllMissionsHeader" style="display: none;"><input type="checkbox" id="selectAllMissions" onclick="toggleAllCheckboxes('missionsTable')"></th>
                         <th>التاريخ</th>
                         <th>اسم السائق</th>
                         <th>رقم السيارة</th>
@@ -151,10 +153,12 @@
         <h2>بيانات الإيصالات المسجلة</h2>
         <input type="text" id="receiptSearchInput" placeholder="ابحث في الإيصالات..." oninput="searchTable('receiptsTable', 'receiptSearchInput')">
         <button class="download-btn" onclick="downloadExcel('receipts')">تحميل بيانات الإيصالات (Excel)</button>
+        <button id="bulkEditReceiptBtn" class="edit-btn" onclick="openBulkEditReceiptForm()" style="display: none;">تعديل جماعي للإيصالات</button>
         <div style="overflow-x: auto;">
             <table id="receiptsTable">
                 <thead>
                     <tr>
+                        <th id="selectAllReceiptsHeader" style="display: none;"><input type="checkbox" id="selectAllReceipts" onclick="toggleAllCheckboxes('receiptsTable')"></th>
                         <th>التاريخ</th>
                         <th>اسم السائق</th>
                         <th>اسم المندوب</th>
@@ -238,6 +242,28 @@
         <button onclick="closeEditForm('editReceiptForm')">إلغاء</button>
     </div>
 
+    <div id="bulkEditMissionForm" class="edit-form">
+        <h3>تعديل جماعي للمأموريات</h3>
+        <select id="bulkEditMissionStatus" class="status-select">
+            <option value="جاري المراجعة">جاري المراجعة</option>
+            <option value="تم المراجعة">تم المراجعة</option>
+            <option value="تم الرفض">تم الرفض</option>
+        </select>
+        <button onclick="updateBulkMissions()">حفظ التعديلات</button>
+        <button onclick="closeEditForm('bulkEditMissionForm')">إلغاء</button>
+    </div>
+
+    <div id="bulkEditReceiptForm" class="edit-form">
+        <h3>تعديل جماعي للإيصالات</h3>
+        <select id="bulkEditReceiptStatus" class="status-select">
+            <option value="جاري المراجعة">جاري المراجعة</option>
+            <option value="تم المراجعة">تم المراجعة</option>
+            <option value="تم الرفض">تم الرفض</option>
+        </select>
+        <button onclick="updateBulkReceipts()">حفظ التعديلات</button>
+        <button onclick="closeEditForm('bulkEditReceiptForm')">إلغاء</button>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
         import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
@@ -249,8 +275,7 @@
             databaseURL: "https://ahmed-15d52-default-rtdb.firebaseio.com",
             projectId: "ahmed-15d52",
             storageBucket: "ahmed-15d52.appspot.com",
-            messagingSenderId: "103191449244",
-            appId: "1:103191449244:web:c33ae04fd0473010da2759",
+                        appId: "1:103191449244:web:c33ae04fd0473010da2759",
             measurementId: "G-WF6LYR9F3D"
         };
 
@@ -272,6 +297,10 @@
                     document.getElementById('receiptDeleteHeader').style.display = 'table-cell';
                     document.getElementById('editMissionStatus').style.display = 'block';
                     document.getElementById('editReceiptStatus').style.display = 'block';
+                    document.getElementById('bulkEditMissionBtn').style.display = 'inline-block';
+                    document.getElementById('bulkEditReceiptBtn').style.display = 'inline-block';
+                    document.getElementById('selectAllMissionsHeader').style.display = 'table-cell';
+                    document.getElementById('selectAllReceiptsHeader').style.display = 'table-cell';
                 }
                 fetchAndDisplayMissions();
                 fetchAndDisplayReceipts();
@@ -305,6 +334,7 @@
                     const statusClass = getStatusClass(mission.status);
                     const isEditable = (mission.status !== 'تم المراجعة' && mission.status !== 'تم الرفض') || isAdmin;
                     const row = `<tr>
+                        ${isAdmin ? `<td><input type="checkbox" value="${id}"></td>` : ''}
                         <td>${mission.date || ''}</td>
                         <td>${mission.driver || ''}</td>
                         <td>${mission.carNumber || ''}</td>
@@ -338,6 +368,7 @@
                     const statusClass = getStatusClass(receipt.status);
                     const isEditable = (receipt.status !== 'تم المراجعة' && receipt.status !== 'تم الرفض') || isAdmin;
                     const row = `<tr>
+                        ${isAdmin ? `<td><input type="checkbox" value="${id}"></td>` : ''}
                         <td>${receipt.date || ''}</td>
                         <td>${receipt.driver || ''}</td>
                         <td>${receipt.delegate || ''}</td>
@@ -506,22 +537,23 @@
             const data = [];
             for (let i = 1; i < table.rows.length; i++) {
                 const row = table.rows[i];
+                const startIndex = isAdmin ? 1 : 0;
                 const rowData = {
-                    'التاريخ': row.cells[0].innerText,
-                    'اسم السائق': row.cells[1].innerText,
-                    'رقم السيارة': row.cells[2].innerText,
-                    'اسم المندوب': row.cells[3].innerText,
-                    'اتجاه الرحلة': row.cells[4].innerText,
-                    'رقم الجولة أو الإذن': row.cells[5].innerText,
-                    'عداد البداية': row.cells[6].innerText,
-                    'عداد النهاية': row.cells[7].innerText,
-                    'عدد أيام الرحلة': row.cells[8].innerText,
-                    'بدل مبيت': row.cells[9].innerText,
-                    'حالة المأمورية': row.cells[10].innerText,
-                    'ملاحظات': row.cells[11].innerText
+                    'التاريخ': row.cells[startIndex].innerText,
+                    'اسم السائق': row.cells[startIndex + 1].innerText,
+                    'رقم السيارة': row.cells[startIndex + 2].innerText,
+                    'اسم المندوب': row.cells[startIndex + 3].innerText,
+                    'اتجاه الرحلة': row.cells[startIndex + 4].innerText,
+                    'رقم الجولة أو الإذن': row.cells[startIndex + 5].innerText,
+                    'عداد البداية': row.cells[startIndex + 6].innerText,
+                    'عداد النهاية': row.cells[startIndex + 7].innerText,
+                    'عدد أيام الرحلة': row.cells[startIndex + 8].innerText,
+                    'بدل مبيت': row.cells[startIndex + 9].innerText,
+                    'حالة المأمورية': row.cells[startIndex + 10].innerText,
+                    'ملاحظات': row.cells[startIndex + 11].innerText
                 };
                 if (isAdmin) {
-                    rowData['البريد الإلكتروني للمسجل'] = row.cells[12].innerText;
+                    rowData['البريد الإلكتروني للمسجل'] = row.cells[startIndex + 12].innerText;
                 }
                 data.push(rowData);
             }
@@ -533,29 +565,29 @@
             const data = [];
             for (let i = 1; i < table.rows.length; i++) {
                 const row = table.rows[i];
+                const startIndex = isAdmin ? 1 : 0;
                 const rowData = {
-                    'التاريخ': row.cells[0].innerText,
-                    'اسم السائق': row.cells[1].innerText,
-                    'اسم المندوب': row.cells[2].innerText,
-                    'رقم السيارة': row.cells[3].innerText,
-                    'نوع الإيصال': row.cells[4].innerText,
-                    'حالة الإيصال': row.cells[5].innerText,
-                    'المحافظة': row.cells[6].innerText,
-                    'المنتج': row.cells[7].innerText,
-                    'رقم الدور': row.cells[8].innerText,
-                    'رقم الطلب': row.cells[9].innerText,
-                    'وقت التأخير': row.cells[10].innerText,
-                    'ملاحظات': row.cells[11].innerText
+                    'التاريخ': row.cells[startIndex].innerText,
+                                        'اسم السائق': row.cells[startIndex + 1].innerText,
+                    'اسم المندوب': row.cells[startIndex + 2].innerText,
+                    'رقم السيارة': row.cells[startIndex + 3].innerText,
+                    'نوع الإيصال': row.cells[startIndex + 4].innerText,
+                    'حالة الإيصال': row.cells[startIndex + 5].innerText,
+                    'المحافظة': row.cells[startIndex + 6].innerText,
+                    'المنتج': row.cells[startIndex + 7].innerText,
+                    'رقم الدور': row.cells[startIndex + 8].innerText,
+                    'رقم الطلب': row.cells[startIndex + 9].innerText,
+                    'وقت التأخير': row.cells[startIndex + 10].innerText,
+                    'ملاحظات': row.cells[startIndex + 11].innerText
                 };
                 if (isAdmin) {
-                    rowData['البريد الإلكتروني للمسجل'] = row.cells[12].innerText;
+                    rowData['البريد الإلكتروني للمسجل'] = row.cells[startIndex + 12].innerText;
                 }
                 data.push(rowData);
             }
             return data;
         }
 
-        // Unified search function for both tables
         window.searchTable = function(tableId, inputId) {
             const input = document.getElementById(inputId);
             const filter = input.value.toUpperCase();
@@ -578,7 +610,6 @@
             }
         }
 
-        // Function to sort table columns
         function sortTable(tableId, colIndex, asc = true) {
             const table = document.getElementById(tableId);
             const tbody = table.tBodies[0];
@@ -611,14 +642,47 @@
             });
         });
 
-        document.querySelectorAll('#receiptsTable th').forEach((header, index) => {
-    let asc = true; // Ascending order flag
-    header.addEventListener('click', () => {
-        const tableId = header.closest('table').id;
-        sortTable(tableId, index, asc);
-        asc = !asc; // Toggle the sorting order
-    });
-});
+        // New functions for bulk editing
+        window.openBulkEditMissionForm = function() {
+            document.getElementById('bulkEditMissionForm').style.display = 'block';
+        }
+
+        window.openBulkEditReceiptForm = function() {
+            document.getElementById('bulkEditReceiptForm').style.display = 'block';
+        }
+
+        window.toggleAllCheckboxes = function(tableId) {
+            const table = document.getElementById(tableId);
+            const checkboxes = table.querySelectorAll('input[type="checkbox"]');
+            const selectAllCheckbox = document.getElementById(`selectAll${tableId === 'missionsTable' ? 'Missions' : 'Receipts'}`);
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        }
+
+        window.updateBulkMissions = function() {
+            const newStatus = document.getElementById('bulkEditMissionStatus').value;
+            const selectedMissions = getSelectedItems('missionsTable');
+            selectedMissions.forEach(id => {
+                update(ref(database, `missions/${id}`), { status: newStatus });
+            });
+            closeEditForm('bulkEditMissionForm');
+        }
+
+        window.updateBulkReceipts = function() {
+            const newStatus = document.getElementById('bulkEditReceiptStatus').value;
+            const selectedReceipts = getSelectedItems('receiptsTable');
+            selectedReceipts.forEach(id => {
+                update(ref(database, `receipts/${id}`), { status: newStatus });
+            });
+            closeEditForm('bulkEditReceiptForm');
+        }
+
+        function getSelectedItems(tableId) {
+            const table = document.getElementById(tableId);
+            const checkboxes = table.querySelectorAll('input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(checkbox => checkbox.value).filter(id => id);
+        }
 
         // Initialize the page
         fetchAndDisplayMissions();
