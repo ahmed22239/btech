@@ -126,29 +126,29 @@
         <button id="bulkEditMissionBtn" class="edit-btn" onclick="openBulkEditMissionForm()" style="display: none;">تعديل جماعي للمأموريات</button>
         <div style="overflow-x: auto;">
             <table id="missionsTable">
-    <thead>
-        <tr>
-            <th id="selectAllMissionsHeader" style="display: none;"><input type="checkbox" id="selectAllMissions" onclick="toggleAllCheckboxes('missionsTable')"></th>
-            <th>التاريخ</th>
-            <th>اسم السائق</th>
-            <th>رقم السيارة</th>
-            <th>اسم المندوب</th>
-            <th>اتجاه الرحلة</th>
-            <th>رقم الجولة أو الإذن</th>
-            <th>عداد البداية</th>
-            <th>عداد النهاية</th>
-            <th>صافي العداد</th> <!-- أضف هذا العمود -->
-            <th>عدد أيام الرحلة</th>
-            <th>بدل مبيت</th>
-            <th>حالة المأمورية</th>
-            <th>ملاحظات</th>
-            <th id="missionEmailHeader" style="display: none;">البريد الإلكتروني للمسجل</th>
-            <th>تعديل</th>
-            <th id="missionDeleteHeader" style="display: none;">حذف</th>
-        </tr>
-    </thead>
-    <tbody id="missionsTableBody"></tbody>
-</table>
+                <thead>
+                    <tr>
+                        <th id="selectAllMissionsHeader" style="display: none;"><input type="checkbox" id="selectAllMissions" onclick="toggleAllCheckboxes('missionsTable')"></th>
+                        <th>التاريخ</th>
+                        <th>اسم السائق</th>
+                        <th>رقم السيارة</th>
+                        <th>اسم المندوب</th>
+                        <th>اتجاه الرحلة</th>
+                        <th>رقم الجولة أو الإذن</th>
+                        <th>عداد البداية</th>
+                        <th>عداد النهاية</th>
+                        <th>صافي العداد</th>
+                        <th>عدد أيام الرحلة</th>
+                        <th>بدل مبيت</th>
+                        <th>حالة المأمورية</th>
+                        <th>ملاحظات</th>
+                        <th id="missionEmailHeader" style="display: none;">البريد الإلكتروني للمسجل</th>
+                        <th>تعديل</th>
+                        <th id="missionDeleteHeader" style="display: none;">حذف</th>
+                    </tr>
+                </thead>
+                <tbody id="missionsTableBody"></tbody>
+            </table>
         </div>
 
         <h2>بيانات الإيصالات المسجلة</h2>
@@ -270,13 +270,14 @@
         import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
-        const firebaseConfig = {
+                const firebaseConfig = {
             apiKey: "AIzaSyAf9OuANGnp9WNDad6n7ky7K7v9mtNsEzI",
             authDomain: "ahmed-15d52.firebaseapp.com",
             databaseURL: "https://ahmed-15d52-default-rtdb.firebaseio.com",
             projectId: "ahmed-15d52",
             storageBucket: "ahmed-15d52.appspot.com",
-                        appId: "1:103191449244:web:c33ae04fd0473010da2759",
+            messagingSenderId: "103191449244",
+            appId: "1:103191449244:web:c33ae04fd0473010da2759",
             measurementId: "G-WF6LYR9F3D"
         };
 
@@ -286,6 +287,15 @@
 
         let currentUserEmail = '';
         let isAdmin = false;
+
+        function saveToLocalStorage(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+        }
+
+        function getFromLocalStorage(key) {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : null;
+        }
 
         onAuthStateChanged(auth, (user) => {
             if (user) {
@@ -324,79 +334,99 @@
         }
 
         function fetchAndDisplayMissions() {
-    const missionsRef = ref(database, 'missions');
-    onValue(missionsRef, (snapshot) => {
-        const data = snapshot.val();
-        const missionsTableBody = document.getElementById('missionsTableBody');
-        missionsTableBody.innerHTML = '';
-        for (let id in data) {
-            const mission = data[id];
-            if (!isAdmin && mission.userEmail !== currentUserEmail) continue;
-            const statusClass = getStatusClass(mission.status);
-            const isEditable = (mission.status !== 'تم المراجعة' && mission.status !== 'تم الرفض') || isAdmin;
-            const netOdometer = calculateNetOdometer(mission.startOdometer, mission.endOdometer);
-            const row = `<tr>
-                ${isAdmin ? `<td><input type="checkbox" value="${id}"></td>` : ''}
-                <td>${mission.date || ''}</td>
-                <td>${mission.driver || ''}</td>
-                <td>${mission.carNumber || ''}</td>
-                <td>${mission.delegate || ''}</td>
-                <td>${mission.direction || ''}</td>
-                <td>${mission.tourNumber || ''}</td>
-                <td>${mission.startOdometer || ''}</td>
-                <td>${mission.endOdometer || ''}</td>
-                <td>${netOdometer}</td>
-                <td>${mission.tripDays || ''}</td>
-                <td>${mission.overnightAllowance || ''}</td>
-                <td class="${statusClass}">${mission.status || 'جاري المراجعة'}</td>
-                <td>${mission.notes || ''}</td>
-                ${isAdmin ? `<td>${mission.userEmail || ''}</td>` : ''}
-                <td><button class="edit-btn" onclick="openEditMissionForm('${id}')" ${!isEditable ? 'disabled' : ''}>تعديل</button></td>
-                ${isAdmin ? `<td><button class="delete-btn" onclick="deleteMission('${id}')">حذف</button></td>` : ''}
-            </tr>`;
-            missionsTableBody.innerHTML += row;
-        }
-    });
-}
+            const cachedMissions = getFromLocalStorage('missions');
+            if (cachedMissions) {
+                displayMissions(cachedMissions);
+            }
 
-function calculateNetOdometer(start, end) {
-    const startOdometer = parseFloat(start) || 0;
-    const endOdometer = parseFloat(end) || 0;
-    return (endOdometer - startOdometer).toFixed(2);
-}
+            const missionsRef = ref(database, 'missions');
+            onValue(missionsRef, (snapshot) => {
+                const data = snapshot.val();
+                saveToLocalStorage('missions', data);
+                displayMissions(data);
+            });
+        }
+
+        function displayMissions(data) {
+            const missionsTableBody = document.getElementById('missionsTableBody');
+            missionsTableBody.innerHTML = '';
+            for (let id in data) {
+                const mission = data[id];
+                if (!isAdmin && mission.userEmail !== currentUserEmail) continue;
+                const statusClass = getStatusClass(mission.status);
+                const isEditable = (mission.status !== 'تم المراجعة' && mission.status !== 'تم الرفض') || isAdmin;
+                const netOdometer = calculateNetOdometer(mission.startOdometer, mission.endOdometer);
+                const row = `<tr>
+                    ${isAdmin ? `<td><input type="checkbox" value="${id}"></td>` : ''}
+                    <td>${mission.date || ''}</td>
+                    <td>${mission.driver || ''}</td>
+                    <td>${mission.carNumber || ''}</td>
+                    <td>${mission.delegate || ''}</td>
+                    <td>${mission.direction || ''}</td>
+                    <td>${mission.tourNumber || ''}</td>
+                    <td>${mission.startOdometer || ''}</td>
+                    <td>${mission.endOdometer || ''}</td>
+                    <td>${netOdometer}</td>
+                    <td>${mission.tripDays || ''}</td>
+                    <td>${mission.overnightAllowance || ''}</td>
+                    <td class="${statusClass}">${mission.status || 'جاري المراجعة'}</td>
+                    <td>${mission.notes || ''}</td>
+                    ${isAdmin ? `<td>${mission.userEmail || ''}</td>` : ''}
+                    <td><button class="edit-btn" onclick="openEditMissionForm('${id}')" ${!isEditable ? 'disabled' : ''}>تعديل</button></td>
+                    ${isAdmin ? `<td><button class="delete-btn" onclick="deleteMission('${id}')">حذف</button></td>` : ''}
+                </tr>`;
+                missionsTableBody.innerHTML += row;
+            }
+        }
+
+        function calculateNetOdometer(start, end) {
+            const startOdometer = parseFloat(start) || 0;
+            const endOdometer = parseFloat(end) || 0;
+            return (endOdometer - startOdometer).toFixed(2);
+        }
 
         function fetchAndDisplayReceipts() {
+            const cachedReceipts = getFromLocalStorage('receipts');
+            if (cachedReceipts) {
+                displayReceipts(cachedReceipts);
+            }
+
             const receiptsRef = ref(database, 'receipts');
             onValue(receiptsRef, (snapshot) => {
                 const data = snapshot.val();
-                const receiptsTableBody = document.getElementById('receiptsTableBody');
-                receiptsTableBody.innerHTML = '';
-                for (let id in data) {
-                    const receipt = data[id];
-                    if (!isAdmin && receipt.userEmail !== currentUserEmail) continue;
-                    const statusClass = getStatusClass(receipt.status);
-                    const isEditable = (receipt.status !== 'تم المراجعة' && receipt.status !== 'تم الرفض') || isAdmin;
-                    const row = `<tr>
-                        ${isAdmin ? `<td><input type="checkbox" value="${id}"></td>` : ''}
-                        <td>${receipt.date || ''}</td>
-                        <td>${receipt.driver || ''}</td>
-                        <td>${receipt.delegate || ''}</td>
-                        <td>${receipt.carNumber || ''}</td>
-                        <td>${receipt.receiptType || ''}</td>
-                        <td class="${statusClass}">${receipt.status || 'جاري المراجعة'}</td>
-                        <td>${receipt.governorate || ''}</td>
-                        <td>${receipt.product || ''}</td>
-                        <td>${receipt.floorNumber || ''}</td>
-                        <td>${receipt.orderNumber || ''}</td>
-                        <td>${receipt.delayTime || ''}</td>
-                        <td>${receipt.notes || ''}</td>
-                        ${isAdmin ? `<td>${receipt.userEmail || ''}</td>` : ''}
-                        <td><button class="edit-btn" onclick="openEditReceiptForm('${id}')" ${!isEditable ? 'disabled' : ''}>تعديل</button></td>
-                        ${isAdmin ? `<td><button class="delete-btn" onclick="deleteReceipt('${id}')">حذف</button></td>` : ''}
-                    </tr>`;
-                    receiptsTableBody.innerHTML += row;
-                }
+                saveToLocalStorage('receipts', data);
+                displayReceipts(data);
             });
+        }
+
+        function displayReceipts(data) {
+            const receiptsTableBody = document.getElementById('receiptsTableBody');
+            receiptsTableBody.innerHTML = '';
+            for (let id in data) {
+                const receipt = data[id];
+                if (!isAdmin && receipt.userEmail !== currentUserEmail) continue;
+                const statusClass = getStatusClass(receipt.status);
+                const isEditable = (receipt.status !== 'تم المراجعة' && receipt.status !== 'تم الرفض') || isAdmin;
+                const row = `<tr>
+                    ${isAdmin ? `<td><input type="checkbox" value="${id}"></td>` : ''}
+                    <td>${receipt.date || ''}</td>
+                    <td>${receipt.driver || ''}</td>
+                    <td>${receipt.delegate || ''}</td>
+                    <td>${receipt.carNumber || ''}</td>
+                    <td>${receipt.receiptType || ''}</td>
+                    <td class="${statusClass}">${receipt.status || 'جاري المراجعة'}</td>
+                    <td>${receipt.governorate || ''}</td>
+                    <td>${receipt.product || ''}</td>
+                    <td>${receipt.floorNumber || ''}</td>
+                    <td>${receipt.orderNumber || ''}</td>
+                    <td>${receipt.delayTime || ''}</td>
+                    <td>${receipt.notes || ''}</td>
+                    ${isAdmin ? `<td>${receipt.userEmail || ''}</td>` : ''}
+                    <td><button class="edit-btn" onclick="openEditReceiptForm('${id}')" ${!isEditable ? 'disabled' : ''}>تعديل</button></td>
+                    ${isAdmin ? `<td><button class="delete-btn" onclick="deleteReceipt('${id}')">حذف</button></td>` : ''}
+                </tr>`;
+                receiptsTableBody.innerHTML += row;
+            }
         }
 
         window.openEditMissionForm = function(id) {
@@ -463,7 +493,12 @@ function calculateNetOdometer(start, end) {
             if (isAdmin) {
                 updatedMission.status = document.getElementById('editMissionStatus').value;
             }
-            update(ref(database, `missions/${id}`), updatedMission);
+            update(ref(database, `missions/${id}`), updatedMission).then(() => {
+                const missions = getFromLocalStorage('missions') || {};
+                missions[id] = updatedMission;
+                saveToLocalStorage('missions', missions);
+                displayMissions(missions);
+            });
             closeEditForm('editMissionForm');
         }
 
@@ -485,7 +520,12 @@ function calculateNetOdometer(start, end) {
             if (isAdmin) {
                 updatedReceipt.status = document.getElementById('editReceiptStatus').value;
             }
-            update(ref(database, `receipts/${id}`), updatedReceipt);
+            update(ref(database, `receipts/${id}`), updatedReceipt).then(() => {
+                const receipts = getFromLocalStorage('receipts') || {};
+                receipts[id] = updatedReceipt;
+                saveToLocalStorage('receipts', receipts);
+                displayReceipts(receipts);
+            });
             closeEditForm('editReceiptForm');
         }
 
@@ -495,13 +535,23 @@ function calculateNetOdometer(start, end) {
 
         window.deleteMission = function(id) {
             if (confirm('هل أنت متأكد من حذف هذه المأمورية؟')) {
-                remove(ref(database, `missions/${id}`));
+                remove(ref(database, `missions/${id}`)).then(() => {
+                    const missions = getFromLocalStorage('missions') || {};
+                    delete missions[id];
+                    saveToLocalStorage('missions', missions);
+                    displayMissions(missions);
+                });
             }
         }
 
         window.deleteReceipt = function(id) {
             if (confirm('هل أنت متأكد من حذف هذا الإيصال؟')) {
-                remove(ref(database, `receipts/${id}`));
+                remove(ref(database, `receipts/${id}`)).then(() => {
+                    const receipts = getFromLocalStorage('receipts') || {};
+                    delete receipts[id];
+                    saveToLocalStorage('receipts', receipts);
+                    displayReceipts(receipts);
+                });
             }
         }
 
@@ -523,8 +573,7 @@ function calculateNetOdometer(start, end) {
             const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
             const blob = new Blob([s2ab(wbout)], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
+            const a = document.createElement('a');            a.href = url;
             a.download = fileName;
             document.body.appendChild(a);
             a.click();
@@ -542,33 +591,33 @@ function calculateNetOdometer(start, end) {
         }
 
         function getMissionsData() {
-    const table = document.getElementById('missionsTable');
-    const data = [];
-    for (let i = 1; i < table.rows.length; i++) {
-        const row = table.rows[i];
-        const startIndex = isAdmin ? 1 : 0;
-        const rowData = {
-            'التاريخ': row.cells[startIndex].innerText,
-            'اسم السائق': row.cells[startIndex + 1].innerText,
-            'رقم السيارة': row.cells[startIndex + 2].innerText,
-            'اسم المندوب': row.cells[startIndex + 3].innerText,
-            'اتجاه الرحلة': row.cells[startIndex + 4].innerText,
-            'رقم الجولة أو الإذن': row.cells[startIndex + 5].innerText,
-            'عداد البداية': row.cells[startIndex + 6].innerText,
-            'عداد النهاية': row.cells[startIndex + 7].innerText,
-            'صافي العداد': row.cells[startIndex + 8].innerText,
-            'عدد أيام الرحلة': row.cells[startIndex + 9].innerText,
-            'بدل مبيت': row.cells[startIndex + 10].innerText,
-            'حالة المأمورية': row.cells[startIndex + 11].innerText,
-            'ملاحظات': row.cells[startIndex + 12].innerText
-        };
-        if (isAdmin) {
-            rowData['البريد الإلكتروني للمسجل'] = row.cells[startIndex + 13].innerText;
+            const table = document.getElementById('missionsTable');
+            const data = [];
+            for (let i = 1; i < table.rows.length; i++) {
+                const row = table.rows[i];
+                const startIndex = isAdmin ? 1 : 0;
+                const rowData = {
+                    'التاريخ': row.cells[startIndex].innerText,
+                    'اسم السائق': row.cells[startIndex + 1].innerText,
+                    'رقم السيارة': row.cells[startIndex + 2].innerText,
+                    'اسم المندوب': row.cells[startIndex + 3].innerText,
+                    'اتجاه الرحلة': row.cells[startIndex + 4].innerText,
+                    'رقم الجولة أو الإذن': row.cells[startIndex + 5].innerText,
+                    'عداد البداية': row.cells[startIndex + 6].innerText,
+                    'عداد النهاية': row.cells[startIndex + 7].innerText,
+                    'صافي العداد': row.cells[startIndex + 8].innerText,
+                    'عدد أيام الرحلة': row.cells[startIndex + 9].innerText,
+                    'بدل مبيت': row.cells[startIndex + 10].innerText,
+                    'حالة المأمورية': row.cells[startIndex + 11].innerText,
+                    'ملاحظات': row.cells[startIndex + 12].innerText
+                };
+                if (isAdmin) {
+                    rowData['البريد الإلكتروني للمسجل'] = row.cells[startIndex + 13].innerText;
+                }
+                data.push(rowData);
+            }
+            return data;
         }
-        data.push(rowData);
-    }
-    return data;
-}
 
         function getReceiptsData() {
             const table = document.getElementById('receiptsTable');
@@ -578,7 +627,7 @@ function calculateNetOdometer(start, end) {
                 const startIndex = isAdmin ? 1 : 0;
                 const rowData = {
                     'التاريخ': row.cells[startIndex].innerText,
-                                        'اسم السائق': row.cells[startIndex + 1].innerText,
+                    'اسم السائق': row.cells[startIndex + 1].innerText,
                     'اسم المندوب': row.cells[startIndex + 2].innerText,
                     'رقم السيارة': row.cells[startIndex + 3].innerText,
                     'نوع الإيصال': row.cells[startIndex + 4].innerText,
@@ -674,18 +723,796 @@ function calculateNetOdometer(start, end) {
             const newStatus = document.getElementById('bulkEditMissionStatus').value;
             const selectedMissions = getSelectedItems('missionsTable');
             selectedMissions.forEach(id => {
-                update(ref(database, `missions/${id}`), { status: newStatus });
+                update(ref(database, `missions/${id}`), { status: newStatus }).then(() => {
+                    const missions = getFromLocalStorage('missions') || {};
+                    if (missions[id]) {
+                        missions[id].status = newStatus;
+                        saveToLocalStorage('missions', missions);
+                    }
+                });
             });
             closeEditForm('bulkEditMissionForm');
+            fetchAndDisplayMissions();
         }
 
         window.updateBulkReceipts = function() {
             const newStatus = document.getElementById('bulkEditReceiptStatus').value;
             const selectedReceipts = getSelectedItems('receiptsTable');
             selectedReceipts.forEach(id => {
-                update(ref(database, `receipts/${id}`), { status: newStatus });
+                update(ref(database, `receipts/${id}`), { status: newStatus }).then(() => {
+                    const receipts = getFromLocalStorage('receipts') || {};
+                    if (receipts[id]) {
+                        receipts[id].status = newStatus;
+                        saveToLocalStorage('receipts', receipts);
+                    }
+                });
             });
             closeEditForm('bulkEditReceiptForm');
+            fetchAndDisplayReceipts();
+        }
+
+        function getSelectedItems(tableId) {
+            const table = document.getElementById(tableId);
+            const checkboxes = table.querySelectorAll('input[type="checkbox"]:checked');
+            return Array.from(checkboxes).map(checkbox => checkbox.value).filter(id => id);
+        }
+
+        // Initialize the page
+        fetchAndDisplayMissions();
+        fetchAndDisplayReceipts();
+    </script>
+</body>
+</html><!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>عرض البيانات المسجلة</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 10px;
+            background-color: #f0f0f0;
+            font-size: 14px;
+        }
+        .container {
+            background-color: white;
+            padding: 10px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+        }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: right;
+        }
+        th {
+            background-color: #4CAF50;
+            color: white;
+            cursor: pointer;
+        }
+        tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        .edit-btn, .download-btn, .delete-btn {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 10px;
+            cursor: pointer;
+            margin: 5px;
+            font-size: 12px;
+        }
+        .delete-btn {
+            background-color: #f44336;
+        }
+        .edit-form {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 90%;
+            width: 300px;
+        }
+        .edit-form input, .edit-form select, .edit-form textarea {
+            display: block;
+            margin: 10px 0;
+            padding: 5px;
+            width: 100%;
+        }
+        .edit-form button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        .status-select {
+            padding: 5px;
+            margin: 5px 0;
+        }
+        .status-pending {
+            background-color: #FFF3CD;
+            color: #856404;
+        }
+        .status-approved {
+            background-color: #D4EDDA;
+            color: #155724;
+        }
+        .status-rejected {
+            background-color: #F8D7DA;
+            color: #721C24;
+        }
+        input[type="text"] {
+            padding: 5px;
+            margin: 5px 0;
+            width: 200px;
+        }
+        button {
+            padding: 5px 10px;
+            margin: 5px;
+            cursor: pointer;
+        }
+        @media screen and (max-width: 600px) {
+            table {
+                font-size: 12px;
+            }
+            th, td {
+                padding: 5px;
+            }
+            .edit-btn, .download-btn, .delete-btn {
+                padding: 3px 6px;
+                font-size: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h2>بيانات المأموريات المسجلة</h2>
+        <input type="text" id="missionSearchInput" placeholder="ابحث في المأموريات..." oninput="searchTable('missionsTable', 'missionSearchInput')">
+        <button class="download-btn" onclick="downloadExcel('missions')">تحميل بيانات المأموريات (Excel)</button>
+        <button id="bulkEditMissionBtn" class="edit-btn" onclick="openBulkEditMissionForm()" style="display: none;">تعديل جماعي للمأموريات</button>
+        <div style="overflow-x: auto;">
+            <table id="missionsTable">
+                <thead>
+                    <tr>
+                        <th id="selectAllMissionsHeader" style="display: none;"><input type="checkbox" id="selectAllMissions" onclick="toggleAllCheckboxes('missionsTable')"></th>
+                        <th>التاريخ</th>
+                        <th>اسم السائق</th>
+                        <th>رقم السيارة</th>
+                        <th>اسم المندوب</th>
+                        <th>اتجاه الرحلة</th>
+                        <th>رقم الجولة أو الإذن</th>
+                        <th>عداد البداية</th>
+                        <th>عداد النهاية</th>
+                        <th>صافي العداد</th>
+                        <th>عدد أيام الرحلة</th>
+                        <th>بدل مبيت</th>
+                        <th>حالة المأمورية</th>
+                        <th>ملاحظات</th>
+                        <th id="missionEmailHeader" style="display: none;">البريد الإلكتروني للمسجل</th>
+                        <th>تعديل</th>
+                        <th id="missionDeleteHeader" style="display: none;">حذف</th>
+                    </tr>
+                </thead>
+                <tbody id="missionsTableBody"></tbody>
+            </table>
+        </div>
+
+        <h2>بيانات الإيصالات المسجلة</h2>
+        <input type="text" id="receiptSearchInput" placeholder="ابحث في الإيصالات..." oninput="searchTable('receiptsTable', 'receiptSearchInput')">
+        <button class="download-btn" onclick="downloadExcel('receipts')">تحميل بيانات الإيصالات (Excel)</button>
+        <button id="bulkEditReceiptBtn" class="edit-btn" onclick="openBulkEditReceiptForm()" style="display: none;">تعديل جماعي للإيصالات</button>
+        <div style="overflow-x: auto;">
+            <table id="receiptsTable">
+                <thead>
+                    <tr>
+                        <th id="selectAllReceiptsHeader" style="display: none;"><input type="checkbox" id="selectAllReceipts" onclick="toggleAllCheckboxes('receiptsTable')"></th>
+                        <th>التاريخ</th>
+                        <th>اسم السائق</th>
+                        <th>اسم المندوب</th>
+                        <th>رقم السيارة</th>
+                        <th>نوع الإيصال</th>
+                        <th>حالة الإيصال</th>
+                        <th>المحافظة</th>
+                        <th>المنتج</th>
+                        <th>رقم الدور</th>
+                        <th>رقم الطلب</th>
+                        <th>وقت التأخير</th>
+                        <th>ملاحظات</th>
+                        <th id="receiptEmailHeader" style="display: none;">البريد الإلكتروني للمسجل</th>
+                        <th>تعديل</th>
+                        <th id="receiptDeleteHeader" style="display: none;">حذف</th>
+                    </tr>
+                </thead>
+                <tbody id="receiptsTableBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="editMissionForm" class="edit-form">
+        <h3>تعديل المأمورية</h3>
+        <input type="hidden" id="editMissionId">
+        <input type="date" id="editMissionDate" placeholder="التاريخ">
+        <input type="text" id="editMissionDriver" placeholder="اسم السائق">
+        <input type="text" id="editMissionCarNumber" placeholder="رقم السيارة">
+        <input type="text" id="editMissionDelegate" placeholder="اسم المندوب">
+        <input type="text" id="editMissionDirection" placeholder="اتجاه الرحلة">
+        <input type="text" id="editMissionTourNumber" placeholder="رقم الجولة أو الإذن">
+        <input type="number" id="editMissionStartOdometer" placeholder="عداد البداية">
+        <input type="number" id="editMissionEndOdometer" placeholder="عداد النهاية">
+        <input type="number" id="editMissionTripDays" placeholder="عدد أيام الرحلة">
+        <select id="editMissionOvernightAllowance">
+            <option value="نعم">نعم</option>
+            <option value="لا">لا</option>
+        </select>
+        <textarea id="editMissionNotes" placeholder="ملاحظات"></textarea>
+        <select id="editMissionStatus" class="status-select" style="display: none;">
+            <option value="جاري المراجعة">جاري المراجعة</option>
+            <option value="تم المراجعة">تم المراجعة</option>
+            <option value="تم الرفض">تم الرفض</option>
+        </select>
+        <button onclick="updateMission()">حفظ التعديلات</button>
+        <button onclick="closeEditForm('editMissionForm')">إلغاء</button>
+    </div>
+
+    <div id="editReceiptForm" class="edit-form">
+        <h3>تعديل الإيصال</h3>
+        <input type="hidden" id="editReceiptId">
+        <input type="date" id="editReceiptDate" placeholder="التاريخ">
+        <input type="text" id="editReceiptDriver" placeholder="اسم السائق">
+        <input type="text" id="editReceiptDelegate" placeholder="اسم المندوب">
+        <input type="text" id="editReceiptCarNumber" placeholder="رقم السيارة">
+        <select id="editReceiptType">
+            <option value="بدل مبيت">بدل مبيت</option>
+            <option value="بدل 3 نقلات من المخزن">بدل 3 نقلات من المخزن</option>
+            <option value="بدل 2 نقله خارجي">بدل 2 نقله خارجي</option>
+            <option value="الصعود لدور عالي">الصعود لدور عالي</option>
+            <option value="بدل تأخير">بدل تأخير</option>
+        </select>
+        <input type="text" id="editReceiptGovernorate" placeholder="المحافظة">
+        <select id="editReceiptProduct">
+            <option value="">اختر المنتج</option>
+            <option value="ثلاجة">ثلاجة</option>
+            <option value="بوتجاز">بوتجاز</option>
+            <option value="غسالة">غسالة</option>
+            <option value="تكييف 3 حصان">تكييف 3 حصان</option>
+        </select>
+        <input type="number" id="editReceiptFloorNumber" placeholder="رقم الدور">
+        <input type="text" id="editReceiptOrderNumber" placeholder="رقم الطلب">
+        <input type="time" id="editReceiptDelayTime" placeholder="وقت التأخير">
+        <textarea id="editReceiptNotes" placeholder="ملاحظات"></textarea>
+        <select id="editReceiptStatus" class="status-select" style="display: none;">
+            <option value="جاري المراجعة">جاري المراجعة</option>
+            <option value="تم المراجعة">تم المراجعة</option>
+            <option value="تم الرفض">تم الرفض</option>
+        </select>
+        <button onclick="updateReceipt()">حفظ التعديلات</button>
+        <button onclick="closeEditForm('editReceiptForm')">إلغاء</button>
+    </div>
+
+    <div id="bulkEditMissionForm" class="edit-form">
+        <h3>تعديل جماعي للمأموريات</h3>
+        <select id="bulkEditMissionStatus" class="status-select">
+            <option value="جاري المراجعة">جاري المراجعة</option>
+            <option value="تم المراجعة">تم المراجعة</option>
+            <option value="تم الرفض">تم الرفض</option>
+        </select>
+        <button onclick="updateBulkMissions()">حفظ التعديلات</button>
+        <button onclick="closeEditForm('bulkEditMissionForm')">إلغاء</button>
+    </div>
+
+    <div id="bulkEditReceiptForm" class="edit-form">
+        <h3>تعديل جماعي للإيصالات</h3>
+        <select id="bulkEditReceiptStatus" class="status-select">
+            <option value="جاري المراجعة">جاري المراجعة</option>
+            <option value="تم المراجعة">تم المراجعة</option>
+            <option value="تم الرفض">تم الرفض</option>
+        </select>
+        <button onclick="updateBulkReceipts()">حفظ التعديلات</button>
+        <button onclick="closeEditForm('bulkEditReceiptForm')">إلغاء</button>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+        import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+
+                const firebaseConfig = {
+            apiKey: "AIzaSyAf9OuANGnp9WNDad6n7ky7K7v9mtNsEzI",
+            authDomain: "ahmed-15d52.firebaseapp.com",
+            databaseURL: "https://ahmed-15d52-default-rtdb.firebaseio.com",
+            projectId: "ahmed-15d52",
+            storageBucket: "ahmed-15d52.appspot.com",
+            messagingSenderId: "103191449244",
+            appId: "1:103191449244:web:c33ae04fd0473010da2759",
+            measurementId: "G-WF6LYR9F3D"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const database = getDatabase(app);
+        const auth = getAuth(app);
+
+        let currentUserEmail = '';
+        let isAdmin = false;
+
+        function saveToLocalStorage(key, data) {
+            localStorage.setItem(key, JSON.stringify(data));
+        }
+
+        function getFromLocalStorage(key) {
+            const data = localStorage.getItem(key);
+            return data ? JSON.parse(data) : null;
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUserEmail = user.email;
+                isAdmin = (currentUserEmail === 'ahmed29944@btech.com');
+                if (isAdmin) {
+                    document.getElementById('missionEmailHeader').style.display = 'table-cell';
+                    document.getElementById('receiptEmailHeader').style.display = 'table-cell';
+                    document.getElementById('missionDeleteHeader').style.display = 'table-cell';
+                    document.getElementById('receiptDeleteHeader').style.display = 'table-cell';
+                    document.getElementById('editMissionStatus').style.display = 'block';
+                    document.getElementById('editReceiptStatus').style.display = 'block';
+                    document.getElementById('bulkEditMissionBtn').style.display = 'inline-block';
+                    document.getElementById('bulkEditReceiptBtn').style.display = 'inline-block';
+                    document.getElementById('selectAllMissionsHeader').style.display = 'table-cell';
+                    document.getElementById('selectAllReceiptsHeader').style.display = 'table-cell';
+                }
+                fetchAndDisplayMissions();
+                fetchAndDisplayReceipts();
+            } else {
+                window.location.href = 'login.html';
+            }
+        });
+
+        function getStatusClass(status) {
+            switch(status) {
+                case 'جاري المراجعة':
+                    return 'status-pending';
+                case 'تم المراجعة':
+                    return 'status-approved';
+                case 'تم الرفض':
+                    return 'status-rejected';
+                default:
+                    return 'status-pending';
+            }
+        }
+
+        function fetchAndDisplayMissions() {
+            const cachedMissions = getFromLocalStorage('missions');
+            if (cachedMissions) {
+                displayMissions(cachedMissions);
+            }
+
+            const missionsRef = ref(database, 'missions');
+            onValue(missionsRef, (snapshot) => {
+                const data = snapshot.val();
+                saveToLocalStorage('missions', data);
+                displayMissions(data);
+            });
+        }
+
+        function displayMissions(data) {
+            const missionsTableBody = document.getElementById('missionsTableBody');
+            missionsTableBody.innerHTML = '';
+            for (let id in data) {
+                const mission = data[id];
+                if (!isAdmin && mission.userEmail !== currentUserEmail) continue;
+                const statusClass = getStatusClass(mission.status);
+                const isEditable = (mission.status !== 'تم المراجعة' && mission.status !== 'تم الرفض') || isAdmin;
+                const netOdometer = calculateNetOdometer(mission.startOdometer, mission.endOdometer);
+                const row = `<tr>
+                    ${isAdmin ? `<td><input type="checkbox" value="${id}"></td>` : ''}
+                    <td>${mission.date || ''}</td>
+                    <td>${mission.driver || ''}</td>
+                    <td>${mission.carNumber || ''}</td>
+                    <td>${mission.delegate || ''}</td>
+                    <td>${mission.direction || ''}</td>
+                    <td>${mission.tourNumber || ''}</td>
+                    <td>${mission.startOdometer || ''}</td>
+                    <td>${mission.endOdometer || ''}</td>
+                    <td>${netOdometer}</td>
+                    <td>${mission.tripDays || ''}</td>
+                    <td>${mission.overnightAllowance || ''}</td>
+                    <td class="${statusClass}">${mission.status || 'جاري المراجعة'}</td>
+                    <td>${mission.notes || ''}</td>
+                    ${isAdmin ? `<td>${mission.userEmail || ''}</td>` : ''}
+                    <td><button class="edit-btn" onclick="openEditMissionForm('${id}')" ${!isEditable ? 'disabled' : ''}>تعديل</button></td>
+                    ${isAdmin ? `<td><button class="delete-btn" onclick="deleteMission('${id}')">حذف</button></td>` : ''}
+                </tr>`;
+                missionsTableBody.innerHTML += row;
+            }
+        }
+
+        function calculateNetOdometer(start, end) {
+            const startOdometer = parseFloat(start) || 0;
+            const endOdometer = parseFloat(end) || 0;
+            return (endOdometer - startOdometer).toFixed(2);
+        }
+
+        function fetchAndDisplayReceipts() {
+            const cachedReceipts = getFromLocalStorage('receipts');
+            if (cachedReceipts) {
+                displayReceipts(cachedReceipts);
+            }
+
+            const receiptsRef = ref(database, 'receipts');
+            onValue(receiptsRef, (snapshot) => {
+                const data = snapshot.val();
+                saveToLocalStorage('receipts', data);
+                displayReceipts(data);
+            });
+        }
+
+        function displayReceipts(data) {
+            const receiptsTableBody = document.getElementById('receiptsTableBody');
+            receiptsTableBody.innerHTML = '';
+            for (let id in data) {
+                const receipt = data[id];
+                if (!isAdmin && receipt.userEmail !== currentUserEmail) continue;
+                const statusClass = getStatusClass(receipt.status);
+                const isEditable = (receipt.status !== 'تم المراجعة' && receipt.status !== 'تم الرفض') || isAdmin;
+                const row = `<tr>
+                    ${isAdmin ? `<td><input type="checkbox" value="${id}"></td>` : ''}
+                    <td>${receipt.date || ''}</td>
+                    <td>${receipt.driver || ''}</td>
+                    <td>${receipt.delegate || ''}</td>
+                    <td>${receipt.carNumber || ''}</td>
+                    <td>${receipt.receiptType || ''}</td>
+                    <td class="${statusClass}">${receipt.status || 'جاري المراجعة'}</td>
+                    <td>${receipt.governorate || ''}</td>
+                    <td>${receipt.product || ''}</td>
+                    <td>${receipt.floorNumber || ''}</td>
+                    <td>${receipt.orderNumber || ''}</td>
+                    <td>${receipt.delayTime || ''}</td>
+                    <td>${receipt.notes || ''}</td>
+                    ${isAdmin ? `<td>${receipt.userEmail || ''}</td>` : ''}
+                    <td><button class="edit-btn" onclick="openEditReceiptForm('${id}')" ${!isEditable ? 'disabled' : ''}>تعديل</button></td>
+                    ${isAdmin ? `<td><button class="delete-btn" onclick="deleteReceipt('${id}')">حذف</button></td>` : ''}
+                </tr>`;
+                receiptsTableBody.innerHTML += row;
+            }
+        }
+
+        window.openEditMissionForm = function(id) {
+            const missionRef = ref(database, `missions/${id}`);
+            onValue(missionRef, (snapshot) => {
+                const mission = snapshot.val();
+                document.getElementById('editMissionId').value = id;
+                document.getElementById('editMissionDate').value = mission.date || '';
+                document.getElementById('editMissionDriver').value = mission.driver || '';
+                document.getElementById('editMissionCarNumber').value = mission.carNumber || '';
+                document.getElementById('editMissionDelegate').value = mission.delegate || '';
+                document.getElementById('editMissionDirection').value = mission.direction || '';
+                document.getElementById('editMissionTourNumber').value = mission.tourNumber || '';
+                document.getElementById('editMissionStartOdometer').value = mission.startOdometer || '';
+                document.getElementById('editMissionEndOdometer').value = mission.endOdometer || '';
+                document.getElementById('editMissionTripDays').value = mission.tripDays || '';
+                document.getElementById('editMissionOvernightAllowance').value = mission.overnightAllowance || 'لا';
+                document.getElementById('editMissionNotes').value = mission.notes || '';
+                if (isAdmin) {
+                    document.getElementById('editMissionStatus').value = mission.status || 'جاري المراجعة';
+                }
+                document.getElementById('editMissionForm').style.display = 'block';
+            });
+        }
+
+        window.openEditReceiptForm = function(id) {
+            const receiptRef = ref(database, `receipts/${id}`);
+            onValue(receiptRef, (snapshot) => {
+                const receipt = snapshot.val();
+                document.getElementById('editReceiptId').value = id;
+                document.getElementById('editReceiptDate').value = receipt.date || '';
+                document.getElementById('editReceiptDriver').value = receipt.driver || '';
+                document.getElementById('editReceiptDelegate').value = receipt.delegate || '';
+                document.getElementById('editReceiptCarNumber').value = receipt.carNumber || '';
+                document.getElementById('editReceiptType').value = receipt.receiptType || '';
+                document.getElementById('editReceiptGovernorate').value = receipt.governorate || '';
+                document.getElementById('editReceiptProduct').value = receipt.product || '';
+                document.getElementById('editReceiptFloorNumber').value = receipt.floorNumber || '';
+                document.getElementById('editReceiptOrderNumber').value = receipt.orderNumber || '';
+                document.getElementById('editReceiptDelayTime').value = receipt.delayTime || '';
+                document.getElementById('editReceiptNotes').value = receipt.notes || '';
+                if (isAdmin) {
+                    document.getElementById('editReceiptStatus').value = receipt.status || 'جاري المراجعة';
+                }
+                document.getElementById('editReceiptForm').style.display = 'block';
+            });
+        }
+
+        window.updateMission = function() {
+            const id = document.getElementById('editMissionId').value;
+            const updatedMission = {
+                date: document.getElementById('editMissionDate').value,
+                driver: document.getElementById('editMissionDriver').value,
+                carNumber: document.getElementById('editMissionCarNumber').value,
+                delegate: document.getElementById('editMissionDelegate').value,
+                direction: document.getElementById('editMissionDirection').value,
+                tourNumber: document.getElementById('editMissionTourNumber').value,
+                startOdometer: document.getElementById('editMissionStartOdometer').value,
+                endOdometer: document.getElementById('editMissionEndOdometer').value,
+                tripDays: document.getElementById('editMissionTripDays').value,
+                overnightAllowance: document.getElementById('editMissionOvernightAllowance').value,
+                notes: document.getElementById('editMissionNotes').value
+            };
+            if (isAdmin) {
+                updatedMission.status = document.getElementById('editMissionStatus').value;
+            }
+            update(ref(database, `missions/${id}`), updatedMission).then(() => {
+                const missions = getFromLocalStorage('missions') || {};
+                missions[id] = updatedMission;
+                saveToLocalStorage('missions', missions);
+                displayMissions(missions);
+            });
+            closeEditForm('editMissionForm');
+        }
+
+        window.updateReceipt = function() {
+            const id = document.getElementById('editReceiptId').value;
+            const updatedReceipt = {
+                date: document.getElementById('editReceiptDate').value,
+                driver: document.getElementById('editReceiptDriver').value,
+                delegate: document.getElementById('editReceiptDelegate').value,
+                carNumber: document.getElementById('editReceiptCarNumber').value,
+                receiptType: document.getElementById('editReceiptType').value,
+                governorate: document.getElementById('editReceiptGovernorate').value,
+                product: document.getElementById('editReceiptProduct').value,
+                floorNumber: document.getElementById('editReceiptFloorNumber').value,
+                orderNumber: document.getElementById('editReceiptOrderNumber').value,
+                delayTime: document.getElementById('editReceiptDelayTime').value,
+                notes: document.getElementById('editReceiptNotes').value
+            };
+            if (isAdmin) {
+                updatedReceipt.status = document.getElementById('editReceiptStatus').value;
+            }
+            update(ref(database, `receipts/${id}`), updatedReceipt).then(() => {
+                const receipts = getFromLocalStorage('receipts') || {};
+                receipts[id] = updatedReceipt;
+                saveToLocalStorage('receipts', receipts);
+                displayReceipts(receipts);
+            });
+            closeEditForm('editReceiptForm');
+        }
+
+        window.closeEditForm = function(formId) {
+            document.getElementById(formId).style.display = 'none';
+        }
+
+        window.deleteMission = function(id) {
+            if (confirm('هل أنت متأكد من حذف هذه المأمورية؟')) {
+                remove(ref(database, `missions/${id}`)).then(() => {
+                    const missions = getFromLocalStorage('missions') || {};
+                    delete missions[id];
+                    saveToLocalStorage('missions', missions);
+                    displayMissions(missions);
+                });
+            }
+        }
+
+        window.deleteReceipt = function(id) {
+            if (confirm('هل أنت متأكد من حذف هذا الإيصال؟')) {
+                remove(ref(database, `receipts/${id}`)).then(() => {
+                    const receipts = getFromLocalStorage('receipts') || {};
+                    delete receipts[id];
+                    saveToLocalStorage('receipts', receipts);
+                    displayReceipts(receipts);
+                });
+            }
+        }
+
+        window.downloadExcel = function(type) {
+            let data;
+            let fileName;
+            if (type === 'missions') {
+                data = getMissionsData();
+                fileName = 'المأموريات.xlsx';
+            } else if (type === 'receipts') {
+                data = getReceiptsData();
+                fileName = 'الإيصالات.xlsx';
+            }
+
+            const ws = XLSX.utils.json_to_sheet(data);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+
+            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+            const blob = new Blob([s2ab(wbout)], { type: 'application/octet-stream' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');            a.href = url;
+            a.download = fileName;
+            document.body.appendChild(a);
+            a.click();
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 0);
+        }
+
+        function s2ab(s) {
+            const buf = new ArrayBuffer(s.length);
+            const view = new Uint8Array(buf);
+            for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
+            return buf;
+        }
+
+        function getMissionsData() {
+            const table = document.getElementById('missionsTable');
+            const data = [];
+            for (let i = 1; i < table.rows.length; i++) {
+                const row = table.rows[i];
+                const startIndex = isAdmin ? 1 : 0;
+                const rowData = {
+                    'التاريخ': row.cells[startIndex].innerText,
+                    'اسم السائق': row.cells[startIndex + 1].innerText,
+                    'رقم السيارة': row.cells[startIndex + 2].innerText,
+                    'اسم المندوب': row.cells[startIndex + 3].innerText,
+                    'اتجاه الرحلة': row.cells[startIndex + 4].innerText,
+                    'رقم الجولة أو الإذن': row.cells[startIndex + 5].innerText,
+                    'عداد البداية': row.cells[startIndex + 6].innerText,
+                    'عداد النهاية': row.cells[startIndex + 7].innerText,
+                    'صافي العداد': row.cells[startIndex + 8].innerText,
+                    'عدد أيام الرحلة': row.cells[startIndex + 9].innerText,
+                    'بدل مبيت': row.cells[startIndex + 10].innerText,
+                    'حالة المأمورية': row.cells[startIndex + 11].innerText,
+                    'ملاحظات': row.cells[startIndex + 12].innerText
+                };
+                if (isAdmin) {
+                    rowData['البريد الإلكتروني للمسجل'] = row.cells[startIndex + 13].innerText;
+                }
+                data.push(rowData);
+            }
+            return data;
+        }
+
+        function getReceiptsData() {
+            const table = document.getElementById('receiptsTable');
+            const data = [];
+            for (let i = 1; i < table.rows.length; i++) {
+                const row = table.rows[i];
+                const startIndex = isAdmin ? 1 : 0;
+                const rowData = {
+                    'التاريخ': row.cells[startIndex].innerText,
+                    'اسم السائق': row.cells[startIndex + 1].innerText,
+                    'اسم المندوب': row.cells[startIndex + 2].innerText,
+                    'رقم السيارة': row.cells[startIndex + 3].innerText,
+                    'نوع الإيصال': row.cells[startIndex + 4].innerText,
+                    'حالة الإيصال': row.cells[startIndex + 5].innerText,
+                    'المحافظة': row.cells[startIndex + 6].innerText,
+                    'المنتج': row.cells[startIndex + 7].innerText,
+                    'رقم الدور': row.cells[startIndex + 8].innerText,
+                    'رقم الطلب': row.cells[startIndex + 9].innerText,
+                    'وقت التأخير': row.cells[startIndex + 10].innerText,
+                    'ملاحظات': row.cells[startIndex + 11].innerText
+                };
+                if (isAdmin) {
+                    rowData['البريد الإلكتروني للمسجل'] = row.cells[startIndex + 12].innerText;
+                }
+                data.push(rowData);
+            }
+            return data;
+        }
+
+        window.searchTable = function(tableId, inputId) {
+            const input = document.getElementById(inputId);
+            const filter = input.value.toUpperCase();
+            const table = document.getElementById(tableId);
+            const tr = table.getElementsByTagName('tr');
+
+            for (let i = 1; i < tr.length; i++) {
+                let visible = false;
+                const td = tr[i].getElementsByTagName("td");
+                for (let j = 0; j < td.length; j++) {
+                    if (td[j]) {
+                        let txtValue = td[j].textContent || td[j].innerText;
+                        if (txtValue.toUpperCase().indexOf(filter) > -1) {
+                            visible = true;
+                            break;
+                        }
+                    }
+                }
+                tr[i].style.display = visible ? "" : "none";
+            }
+        }
+
+        function sortTable(tableId, colIndex, asc = true) {
+            const table = document.getElementById(tableId);
+            const tbody = table.tBodies[0];
+            const rowsArray = Array.from(tbody.rows);
+
+            rowsArray.sort((rowA, rowB) => {
+                const cellA = rowA.cells[colIndex].textContent.trim();
+                const cellB = rowB.cells[colIndex].textContent.trim();
+
+                if (!isNaN(cellA) && !isNaN(cellB)) {
+                    // Compare numbers
+                    return asc ? cellA - cellB : cellB - cellA;
+                } else {
+                    // Compare strings
+                    return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
+                }
+            });
+
+            // Append sorted rows to the table body
+            rowsArray.forEach(row => tbody.appendChild(row));
+        }
+
+        // Adding click listeners to table headers for sorting
+        document.querySelectorAll('#missionsTable th, #receiptsTable th').forEach((header, index) => {
+            let asc = true; // Ascending order flag
+            header.addEventListener('click', () => {
+                const tableId = header.closest('table').id;
+                sortTable(tableId, index, asc);
+                asc = !asc; // Toggle the sorting order
+            });
+        });
+
+        // New functions for bulk editing
+        window.openBulkEditMissionForm = function() {
+            document.getElementById('bulkEditMissionForm').style.display = 'block';
+        }
+
+        window.openBulkEditReceiptForm = function() {
+            document.getElementById('bulkEditReceiptForm').style.display = 'block';
+        }
+
+        window.toggleAllCheckboxes = function(tableId) {
+            const table = document.getElementById(tableId);
+            const checkboxes = table.querySelectorAll('input[type="checkbox"]');
+            const selectAllCheckbox = document.getElementById(`selectAll${tableId === 'missionsTable' ? 'Missions' : 'Receipts'}`);
+            checkboxes.forEach(checkbox => {
+                checkbox.checked = selectAllCheckbox.checked;
+            });
+        }
+
+        window.updateBulkMissions = function() {
+            const newStatus = document.getElementById('bulkEditMissionStatus').value;
+            const selectedMissions = getSelectedItems('missionsTable');
+            selectedMissions.forEach(id => {
+                update(ref(database, `missions/${id}`), { status: newStatus }).then(() => {
+                    const missions = getFromLocalStorage('missions') || {};
+                    if (missions[id]) {
+                        missions[id].status = newStatus;
+                        saveToLocalStorage('missions', missions);
+                    }
+                });
+            });
+            closeEditForm('bulkEditMissionForm');
+            fetchAndDisplayMissions();
+        }
+
+        window.updateBulkReceipts = function() {
+            const newStatus = document.getElementById('bulkEditReceiptStatus').value;
+            const selectedReceipts = getSelectedItems('receiptsTable');
+            selectedReceipts.forEach(id => {
+                update(ref(database, `receipts/${id}`), { status: newStatus }).then(() => {
+                    const receipts = getFromLocalStorage('receipts') || {};
+                    if (receipts[id]) {
+                        receipts[id].status = newStatus;
+                        saveToLocalStorage('receipts', receipts);
+                    }
+                });
+            });
+            closeEditForm('bulkEditReceiptForm');
+            fetchAndDisplayReceipts();
         }
 
         function getSelectedItems(tableId) {
