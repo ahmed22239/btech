@@ -110,6 +110,7 @@
             <input type="text" id="tourNumberInput" placeholder="رقم الجولة أو الإذن" required>
             <input type="number" id="startOdometerInput" placeholder="عداد البداية" required>
             <input type="number" id="endOdometerInput" placeholder="عداد النهاية" required>
+            <input type="number" id="netOdometerInput" placeholder="صافي العداد" readonly>
             <select id="tripDaysInput" required>
                 <option value="">اختر عدد أيام الرحلة</option>
                 <option value="1">1</option>
@@ -154,7 +155,7 @@
         </div>
     </div>
 
-    <script type="module">
+        <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
         import { getDatabase, ref, push, set, get, remove } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
@@ -232,10 +233,21 @@
             }
         }
 
+        function calculateNetOdometer() {
+            const startOdometer = parseFloat(document.getElementById('startOdometerInput').value) || 0;
+            const endOdometer = parseFloat(document.getElementById('endOdometerInput').value) || 0;
+            const netOdometer = endOdometer - startOdometer;
+            const netOdometerInput = document.getElementById('netOdometerInput');
+            netOdometerInput.value = netOdometer >= 0 ? netOdometer.toFixed(2) : '';
+            console.log("تم حساب صافي العداد:", netOdometer);
+        }
+
+        document.getElementById('startOdometerInput').addEventListener('input', calculateNetOdometer);
+        document.getElementById('endOdometerInput').addEventListener('input', calculateNetOdometer);
+
         missionForm.addEventListener('submit', function(e) {
             e.preventDefault();
             
-            // تعطيل الزر فور الضغط عليه
             submitButton.disabled = true;
             submitButton.textContent = 'جاري التسجيل...';
 
@@ -248,6 +260,7 @@
                 tourNumber: document.getElementById('tourNumberInput').value,
                 startOdometer: document.getElementById('startOdometerInput').value,
                 endOdometer: document.getElementById('endOdometerInput').value,
+                netOdometer: document.getElementById('netOdometerInput').value,
                 tripDays: document.getElementById('tripDaysInput').value,
                 overnightAllowance: document.getElementById('overnightAllowanceInput').value,
                 notes: document.getElementById('notesInput').value,
@@ -258,13 +271,11 @@
                 .then(() => {
                     document.getElementById('message').textContent = 'تم تسجيل المأمورية بنجاح!';
                     missionForm.reset();
-                    // إعادة تفعيل الزر بعد نجاح العملية
                     submitButton.disabled = false;
                     submitButton.textContent = 'تسجيل';
                 })
                 .catch((error) => {
                     document.getElementById('message').textContent = 'حدث خطأ: ' + error.message;
-                    // إعادة تفعيل الزر في حالة حدوث خطأ
                     submitButton.disabled = false;
                     submitButton.textContent = 'تسجيل';
                 });
@@ -275,9 +286,9 @@
             const delegatesRef = ref(database, 'delegates');
 
             get(driversRef).then((snapshot) => {
+                const driverSelect = document.getElementById('driverInput');
+                driverSelect.innerHTML = '<option value="">اختر اسم السائق</option>';
                 if (snapshot.exists()) {
-                    const driverSelect = document.getElementById('driverInput');
-                    driverSelect.innerHTML = '<option value="">اختر اسم السائق</option>';
                     snapshot.forEach((childSnapshot) => {
                         const driverName = childSnapshot.val();
                         const option = document.createElement('option');
@@ -285,13 +296,17 @@
                         option.textContent = driverName;
                         driverSelect.appendChild(option);
                     });
+                } else {
+                    console.log("لا يوجد سائقين في قاعدة البيانات");
                 }
+            }).catch((error) => {
+                console.error("خطأ في تحميل السائقين:", error);
             });
 
             get(delegatesRef).then((snapshot) => {
+                const delegateSelect = document.getElementById('delegateInput');
+                delegateSelect.innerHTML = '<option value="">اختر اسم المندوب</option>';
                 if (snapshot.exists()) {
-                    const delegateSelect = document.getElementById('delegateInput');
-                    delegateSelect.innerHTML = '<option value="">اختر اسم المندوب</option>';
                     snapshot.forEach((childSnapshot) => {
                         const delegateName = childSnapshot.val();
                         const option = document.createElement('option');
@@ -299,7 +314,11 @@
                         option.textContent = delegateName;
                         delegateSelect.appendChild(option);
                     });
+                } else {
+                    console.log("لا يوجد مندوبين في قاعدة البيانات");
                 }
+            }).catch((error) => {
+                console.error("خطأ في تحميل المندوبين:", error);
             });
         }
 
@@ -357,7 +376,7 @@
             }
         }
 
-                window.removeDelegate = function() {
+        window.removeDelegate = function() {
             const delegateToRemove = document.getElementById('removeDelegateInput').value.trim();
             if (delegateToRemove) {
                 const delegatesRef = ref(database, 'delegates');
@@ -381,7 +400,10 @@
             }
         }
 
-        loadDriversAndDelegates();
+        // التأكد من تنفيذ الكود بعد تحميل الصفحة
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDriversAndDelegates();
+        });
     </script>
 </body>
 </html>
