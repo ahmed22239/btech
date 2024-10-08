@@ -126,28 +126,29 @@
         <button id="bulkEditMissionBtn" class="edit-btn" onclick="openBulkEditMissionForm()" style="display: none;">تعديل جماعي للمأموريات</button>
         <div style="overflow-x: auto;">
             <table id="missionsTable">
-                <thead>
-                    <tr>
-                        <th id="selectAllMissionsHeader" style="display: none;"><input type="checkbox" id="selectAllMissions" onclick="toggleAllCheckboxes('missionsTable')"></th>
-                        <th>التاريخ</th>
-                        <th>اسم السائق</th>
-                        <th>رقم السيارة</th>
-                        <th>اسم المندوب</th>
-                        <th>اتجاه الرحلة</th>
-                        <th>رقم الجولة أو الإذن</th>
-                        <th>عداد البداية</th>
-                        <th>عداد النهاية</th>
-                        <th>عدد أيام الرحلة</th>
-                        <th>بدل مبيت</th>
-                        <th>حالة المأمورية</th>
-                        <th>ملاحظات</th>
-                        <th id="missionEmailHeader" style="display: none;">البريد الإلكتروني للمسجل</th>
-                        <th>تعديل</th>
-                        <th id="missionDeleteHeader" style="display: none;">حذف</th>
-                    </tr>
-                </thead>
-                <tbody id="missionsTableBody"></tbody>
-            </table>
+    <thead>
+        <tr>
+            <th id="selectAllMissionsHeader" style="display: none;"><input type="checkbox" id="selectAllMissions" onclick="toggleAllCheckboxes('missionsTable')"></th>
+            <th>التاريخ</th>
+            <th>اسم السائق</th>
+            <th>رقم السيارة</th>
+            <th>اسم المندوب</th>
+            <th>اتجاه الرحلة</th>
+            <th>رقم الجولة أو الإذن</th>
+            <th>عداد البداية</th>
+            <th>عداد النهاية</th>
+            <th>صافي العداد</th> <!-- أضف هذا العمود -->
+            <th>عدد أيام الرحلة</th>
+            <th>بدل مبيت</th>
+            <th>حالة المأمورية</th>
+            <th>ملاحظات</th>
+            <th id="missionEmailHeader" style="display: none;">البريد الإلكتروني للمسجل</th>
+            <th>تعديل</th>
+            <th id="missionDeleteHeader" style="display: none;">حذف</th>
+        </tr>
+    </thead>
+    <tbody id="missionsTableBody"></tbody>
+</table>
         </div>
 
         <h2>بيانات الإيصالات المسجلة</h2>
@@ -323,38 +324,46 @@
         }
 
         function fetchAndDisplayMissions() {
-            const missionsRef = ref(database, 'missions');
-            onValue(missionsRef, (snapshot) => {
-                const data = snapshot.val();
-                const missionsTableBody = document.getElementById('missionsTableBody');
-                missionsTableBody.innerHTML = '';
-                for (let id in data) {
-                    const mission = data[id];
-                    if (!isAdmin && mission.userEmail !== currentUserEmail) continue;
-                    const statusClass = getStatusClass(mission.status);
-                    const isEditable = (mission.status !== 'تم المراجعة' && mission.status !== 'تم الرفض') || isAdmin;
-                    const row = `<tr>
-                        ${isAdmin ? `<td><input type="checkbox" value="${id}"></td>` : ''}
-                        <td>${mission.date || ''}</td>
-                        <td>${mission.driver || ''}</td>
-                        <td>${mission.carNumber || ''}</td>
-                        <td>${mission.delegate || ''}</td>
-                        <td>${mission.direction || ''}</td>
-                        <td>${mission.tourNumber || ''}</td>
-                        <td>${mission.startOdometer || ''}</td>
-                        <td>${mission.endOdometer || ''}</td>
-                        <td>${mission.tripDays || ''}</td>
-                        <td>${mission.overnightAllowance || ''}</td>
-                        <td class="${statusClass}">${mission.status || 'جاري المراجعة'}</td>
-                        <td>${mission.notes || ''}</td>
-                        ${isAdmin ? `<td>${mission.userEmail || ''}</td>` : ''}
-                        <td><button class="edit-btn" onclick="openEditMissionForm('${id}')" ${!isEditable ? 'disabled' : ''}>تعديل</button></td>
-                        ${isAdmin ? `<td><button class="delete-btn" onclick="deleteMission('${id}')">حذف</button></td>` : ''}
-                    </tr>`;
-                    missionsTableBody.innerHTML += row;
-                }
-            });
+    const missionsRef = ref(database, 'missions');
+    onValue(missionsRef, (snapshot) => {
+        const data = snapshot.val();
+        const missionsTableBody = document.getElementById('missionsTableBody');
+        missionsTableBody.innerHTML = '';
+        for (let id in data) {
+            const mission = data[id];
+            if (!isAdmin && mission.userEmail !== currentUserEmail) continue;
+            const statusClass = getStatusClass(mission.status);
+            const isEditable = (mission.status !== 'تم المراجعة' && mission.status !== 'تم الرفض') || isAdmin;
+            const netOdometer = calculateNetOdometer(mission.startOdometer, mission.endOdometer);
+            const row = `<tr>
+                ${isAdmin ? `<td><input type="checkbox" value="${id}"></td>` : ''}
+                <td>${mission.date || ''}</td>
+                <td>${mission.driver || ''}</td>
+                <td>${mission.carNumber || ''}</td>
+                <td>${mission.delegate || ''}</td>
+                <td>${mission.direction || ''}</td>
+                <td>${mission.tourNumber || ''}</td>
+                <td>${mission.startOdometer || ''}</td>
+                <td>${mission.endOdometer || ''}</td>
+                <td>${netOdometer}</td>
+                <td>${mission.tripDays || ''}</td>
+                <td>${mission.overnightAllowance || ''}</td>
+                <td class="${statusClass}">${mission.status || 'جاري المراجعة'}</td>
+                <td>${mission.notes || ''}</td>
+                ${isAdmin ? `<td>${mission.userEmail || ''}</td>` : ''}
+                <td><button class="edit-btn" onclick="openEditMissionForm('${id}')" ${!isEditable ? 'disabled' : ''}>تعديل</button></td>
+                ${isAdmin ? `<td><button class="delete-btn" onclick="deleteMission('${id}')">حذف</button></td>` : ''}
+            </tr>`;
+            missionsTableBody.innerHTML += row;
         }
+    });
+}
+
+function calculateNetOdometer(start, end) {
+    const startOdometer = parseFloat(start) || 0;
+    const endOdometer = parseFloat(end) || 0;
+    return (endOdometer - startOdometer).toFixed(2);
+}
 
         function fetchAndDisplayReceipts() {
             const receiptsRef = ref(database, 'receipts');
@@ -533,32 +542,33 @@
         }
 
         function getMissionsData() {
-            const table = document.getElementById('missionsTable');
-            const data = [];
-            for (let i = 1; i < table.rows.length; i++) {
-                const row = table.rows[i];
-                const startIndex = isAdmin ? 1 : 0;
-                const rowData = {
-                    'التاريخ': row.cells[startIndex].innerText,
-                    'اسم السائق': row.cells[startIndex + 1].innerText,
-                    'رقم السيارة': row.cells[startIndex + 2].innerText,
-                    'اسم المندوب': row.cells[startIndex + 3].innerText,
-                    'اتجاه الرحلة': row.cells[startIndex + 4].innerText,
-                    'رقم الجولة أو الإذن': row.cells[startIndex + 5].innerText,
-                    'عداد البداية': row.cells[startIndex + 6].innerText,
-                    'عداد النهاية': row.cells[startIndex + 7].innerText,
-                    'عدد أيام الرحلة': row.cells[startIndex + 8].innerText,
-                    'بدل مبيت': row.cells[startIndex + 9].innerText,
-                    'حالة المأمورية': row.cells[startIndex + 10].innerText,
-                    'ملاحظات': row.cells[startIndex + 11].innerText
-                };
-                if (isAdmin) {
-                    rowData['البريد الإلكتروني للمسجل'] = row.cells[startIndex + 12].innerText;
-                }
-                data.push(rowData);
-            }
-            return data;
+    const table = document.getElementById('missionsTable');
+    const data = [];
+    for (let i = 1; i < table.rows.length; i++) {
+        const row = table.rows[i];
+        const startIndex = isAdmin ? 1 : 0;
+        const rowData = {
+            'التاريخ': row.cells[startIndex].innerText,
+            'اسم السائق': row.cells[startIndex + 1].innerText,
+            'رقم السيارة': row.cells[startIndex + 2].innerText,
+            'اسم المندوب': row.cells[startIndex + 3].innerText,
+            'اتجاه الرحلة': row.cells[startIndex + 4].innerText,
+            'رقم الجولة أو الإذن': row.cells[startIndex + 5].innerText,
+            'عداد البداية': row.cells[startIndex + 6].innerText,
+            'عداد النهاية': row.cells[startIndex + 7].innerText,
+            'صافي العداد': row.cells[startIndex + 8].innerText,
+            'عدد أيام الرحلة': row.cells[startIndex + 9].innerText,
+            'بدل مبيت': row.cells[startIndex + 10].innerText,
+            'حالة المأمورية': row.cells[startIndex + 11].innerText,
+            'ملاحظات': row.cells[startIndex + 12].innerText
+        };
+        if (isAdmin) {
+            rowData['البريد الإلكتروني للمسجل'] = row.cells[startIndex + 13].innerText;
         }
+        data.push(rowData);
+    }
+    return data;
+}
 
         function getReceiptsData() {
             const table = document.getElementById('receiptsTable');
