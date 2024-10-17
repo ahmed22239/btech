@@ -33,6 +33,10 @@
         button:hover {
             background-color: #45a049;
         }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
         .hidden {
             display: none;
         }
@@ -73,8 +77,9 @@
     </div>
 
     <script type="module">
+        import { v4 as uuidv4 } from 'https://jspm.dev/uuid';
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-        import { getDatabase, ref, push, onValue } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+        import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -173,14 +178,20 @@
             });
         }
 
-        receiptForm.addEventListener('submit', function(e) {
+        receiptForm.addEventListener('submit', async function(e) {
             e.preventDefault();
             
             if (!confirm('هل أنت متأكد من صحة البيانات المدخلة؟')) {
                 return;
             }
 
+            const submitButton = this.querySelector('button[type="submit"]');
+            submitButton.disabled = true;
+            submitButton.textContent = 'جاري التسجيل...';
+
+            const receiptId = uuidv4();
             const receiptData = {
+                id: receiptId,
                 date: document.getElementById('receiptDateInput').value,
                 driver: document.getElementById('driverInput').value,
                 delegate: document.getElementById('delegateInput').value,
@@ -203,19 +214,22 @@
                 receiptData.delayTime = delayTimeInput.value;
             }
 
-            push(ref(database, 'receipts'), receiptData)
-                .then(() => {
-                    document.getElementById('message').textContent = 'تم تسجيل الإيصال بنجاح!';
-                    receiptForm.reset();
-                    governorateInput.classList.add('hidden');
-                    productInput.classList.add('hidden');
-                    floorNumberInput.classList.add('hidden');
-                    orderNumberInput.classList.add('hidden');
-                    delayTimeInput.classList.add('hidden');
-                })
-                .catch((error) => {
-                    document.getElementById('message').textContent = 'حدث خطأ: ' + error.message;
-                });
+            try {
+                const newReceiptRef = ref(database, `receipts/${receiptId}`);
+                await set(newReceiptRef, receiptData);
+                document.getElementById('message').textContent = 'تم تسجيل الإيصال بنجاح!';
+                receiptForm.reset();
+                governorateInput.classList.add('hidden');
+                productInput.classList.add('hidden');
+                floorNumberInput.classList.add('hidden');
+                orderNumberInput.classList.add('hidden');
+                delayTimeInput.classList.add('hidden');
+            } catch (error) {
+                document.getElementById('message').textContent = 'حدث خطأ: ' + error.message;
+            } finally {
+                submitButton.disabled = false;
+                submitButton.textContent = 'تسجيل';
+            }
         });
 
         loadDriversAndDelegates();
