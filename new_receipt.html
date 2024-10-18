@@ -50,7 +50,9 @@
             <select id="driverInput" required>
                 <option value="">اختر اسم السائق</option>
             </select>
-            <input type="text" id="delegateInput" placeholder="اسم المندوب" required>
+            <select id="delegateInput" required>
+                <option value="">اختر اسم المندوب</option>
+            </select>
             <select id="receiptTypeInput" required>
                 <option value="">اختر نوع الإيصال</option>
                 <option value="بدل مبيت">بدل مبيت</option>
@@ -161,19 +163,14 @@
             });
 
             onValue(delegatesRef, (snapshot) => {
-                const delegateDatalist = document.getElementById('delegateList');
-                if (!delegateDatalist) {
-                    const newDatalist = document.createElement('datalist');
-                    newDatalist.id = 'delegateList';
-                    document.body.appendChild(newDatalist);
-                    document.getElementById('delegateInput').setAttribute('list', 'delegateList');
-                }
-                delegateDatalist.innerHTML = '';
+                const delegateSelect = document.getElementById('delegateInput');
+                delegateSelect.innerHTML = '<option value="">اختر اسم المندوب</option>';
                 snapshot.forEach((childSnapshot) => {
                     const delegateName = childSnapshot.val();
                     const option = document.createElement('option');
                     option.value = delegateName;
-                    delegateDatalist.appendChild(option);
+                    option.textContent = delegateName;
+                    delegateSelect.appendChild(option);
                 });
             });
         }
