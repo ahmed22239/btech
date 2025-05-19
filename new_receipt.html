@@ -104,8 +104,10 @@
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUserEmail = user.email;
+                console.log('المستخدم الحالي:', currentUserEmail);
                 loadDriversAndDelegates();
             } else {
+                console.log('لم يتم تسجيل دخول المستخدم، إعادة توجيه إلى صفحة تسجيل الدخول');
                 window.location.href = 'login.html';
             }
         });
@@ -153,25 +155,39 @@
             onValue(driversRef, (snapshot) => {
                 const driverSelect = document.getElementById('driverInput');
                 driverSelect.innerHTML = '<option value="">اختر اسم السائق</option>';
-                snapshot.forEach((childSnapshot) => {
-                    const driverName = childSnapshot.val();
-                    const option = document.createElement('option');
-                    option.value = driverName;
-                    option.textContent = driverName;
-                    driverSelect.appendChild(option);
-                });
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        const driverName = childSnapshot.val();
+                        const option = document.createElement('option');
+                        option.value = driverName;
+                        option.textContent = driverName;
+                        driverSelect.appendChild(option);
+                    });
+                    console.log('تم تحميل السائقين:', snapshot.val());
+                } else {
+                    console.log('لا يوجد سائقين في قاعدة البيانات');
+                }
+            }, (error) => {
+                console.error('خطأ في تحميل السائقين:', error);
             });
 
             onValue(delegatesRef, (snapshot) => {
                 const delegateSelect = document.getElementById('delegateInput');
                 delegateSelect.innerHTML = '<option value="">اختر اسم المندوب</option>';
-                snapshot.forEach((childSnapshot) => {
-                    const delegateName = childSnapshot.val();
-                    const option = document.createElement('option');
-                    option.value = delegateName;
-                    option.textContent = delegateName;
-                    delegateSelect.appendChild(option);
-                });
+                if (snapshot.exists()) {
+                    snapshot.forEach((childSnapshot) => {
+                        const delegateName = childSnapshot.val();
+                        const option = document.createElement('option');
+                        option.value = delegateName;
+                        option.textContent = delegateName;
+                        delegateSelect.appendChild(option);
+                    });
+                    console.log('تم تحميل المندوبين:', snapshot.val());
+                } else {
+                    console.log('لا يوجد مندوبين في قاعدة البيانات');
+                }
+            }, (error) => {
+                console.error('خطأ في تحميل المندوبين:', error);
             });
         }
 
@@ -194,7 +210,8 @@
                 delegate: document.getElementById('delegateInput').value,
                 receiptType: receiptTypeInput.value,
                 carNumber: document.getElementById('carNumberInput').value,
-                userEmail: currentUserEmail
+                userEmail: currentUserEmail,
+                createdAt: Date.now() // إضافة وقت التسجيل
             };
 
             if (receiptTypeInput.value === 'بدل مبيت') {
@@ -211,10 +228,13 @@
                 receiptData.delayTime = delayTimeInput.value;
             }
 
+            console.log('بيانات الإيصال للتسجيل:', receiptData);
+
             try {
                 const newReceiptRef = ref(database, `receipts/${receiptId}`);
                 await set(newReceiptRef, receiptData);
                 document.getElementById('message').textContent = 'تم تسجيل الإيصال بنجاح!';
+                console.log('تم تسجيل الإيصال بنجاح في Firebase:', receiptData);
                 receiptForm.reset();
                 governorateInput.classList.add('hidden');
                 productInput.classList.add('hidden');
@@ -223,13 +243,16 @@
                 delayTimeInput.classList.add('hidden');
             } catch (error) {
                 document.getElementById('message').textContent = 'حدث خطأ: ' + error.message;
+                console.error('خطأ في تسجيل الإيصال:', error);
             } finally {
                 submitButton.disabled = false;
                 submitButton.textContent = 'تسجيل';
             }
         });
 
-        loadDriversAndDelegates();
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDriversAndDelegates();
+        });
     </script>
 </body>
 </html>
