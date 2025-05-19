@@ -104,6 +104,18 @@
             margin: 5px;
             cursor: pointer;
         }
+        #loadingIndicator {
+            display: none;
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: rgba(0,0,0,0.7);
+            color: white;
+            padding: 20px;
+            border-radius: 5px;
+            z-index: 1000;
+        }
         @media screen and (max-width: 600px) {
             table {
                 font-size: 12px;
@@ -119,6 +131,7 @@
     </style>
 </head>
 <body>
+    <div id="loadingIndicator">جاري التحديث...</div>
     <div class="container">
         <h2>بيانات المأموريات المسجلة</h2>
         <input type="text" id="missionSearchInput" placeholder="ابحث في المأموريات..." oninput="searchTable('missionsTable', 'missionSearchInput')">
@@ -143,6 +156,7 @@
                         <th>حالة المأمورية</th>
                         <th>ملاحظات</th>
                         <th id="missionEmailHeader" style="display: none;">البريد الإلكتروني للمسجل</th>
+                        <th id="missionCreatedAtHeader" style="display: none;">تاريخ التسجيل</th>
                         <th>تعديل</th>
                         <th id="missionDeleteHeader" style="display: none;">حذف</th>
                     </tr>
@@ -173,6 +187,7 @@
                         <th>وقت التأخير</th>
                         <th>ملاحظات</th>
                         <th id="receiptEmailHeader" style="display: none;">البريد الإلكتروني للمسجل</th>
+                        <th id="receiptCreatedAtHeader" style="display: none;">تاريخ التسجيل</th>
                         <th>تعديل</th>
                         <th id="receiptDeleteHeader" style="display: none;">حذف</th>
                     </tr>
@@ -270,7 +285,7 @@
         import { getDatabase, ref, onValue, update, remove } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
-                const firebaseConfig = {
+        const firebaseConfig = {
             apiKey: "AIzaSyAf9OuANGnp9WNDad6n7ky7K7v9mtNsEzI",
             authDomain: "ahmed-15d52.firebaseapp.com",
             databaseURL: "https://ahmed-15d52-default-rtdb.firebaseio.com",
@@ -300,8 +315,10 @@
         onAuthStateChanged(auth, (user) => {
             if (user) {
                 currentUserEmail = user.email;
+                console.log('المستخدم الحالي:', currentUserEmail);
                 isAdmin = (currentUserEmail === 'ahmed29944@btech.com');
                 if (isAdmin) {
+                    console.log('المستخدم أدمن: يتم عرض الأعمدة الإضافية');
                     document.getElementById('missionEmailHeader').style.display = 'table-cell';
                     document.getElementById('receiptEmailHeader').style.display = 'table-cell';
                     document.getElementById('missionDeleteHeader').style.display = 'table-cell';
@@ -312,10 +329,13 @@
                     document.getElementById('bulkEditReceiptBtn').style.display = 'inline-block';
                     document.getElementById('selectAllMissionsHeader').style.display = 'table-cell';
                     document.getElementById('selectAllReceiptsHeader').style.display = 'table-cell';
+                    document.getElementById('missionCreatedAtHeader').style.display = 'table-cell';
+                    document.getElementById('receiptCreatedAtHeader').style.display = 'table-cell';
                 }
                 fetchAndDisplayMissions();
                 fetchAndDisplayReceipts();
             } else {
+                console.log('لم يتم تسجيل دخول المستخدم، إعادة توجيه إلى صفحة تسجيل الدخول');
                 window.location.href = 'login.html';
             }
         });
@@ -336,26 +356,47 @@
         function fetchAndDisplayMissions() {
             const cachedMissions = getFromLocalStorage('missions');
             if (cachedMissions) {
+                console.log('عرض البيانات من التخزين المحلي:', cachedMissions);
                 displayMissions(cachedMissions);
+            } else {
+                console.log('لا توجد بيانات في التخزين المحلي');
             }
 
             const missionsRef = ref(database, 'missions');
             onValue(missionsRef, (snapshot) => {
-                const data = snapshot.val();
-                saveToLocalStorage('missions', data);
-                displayMissions(data);
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    console.log('البيانات المجلوبة من Firebase:', data);
+                    saveToLocalStorage('missions', data);
+                    displayMissions(data);
+                } else {
+                    console.log('لا توجد بيانات في مسار missions في Firebase');
+                    displayMissions({});
+                }
+            }, (error) => {
+                console.error('خطأ في جلب البيانات من Firebase:', error);
             });
         }
 
         function displayMissions(data) {
             const missionsTableBody = document.getElementById('missionsTableBody');
             missionsTableBody.innerHTML = '';
+            if (!data || Object.keys(data).length === 0) {
+                console.log('لا توجد بيانات لعرضها في جدول المأموريات');
+                missionsTableBody.innerHTML = '<tr><td colspan="17">لا توجد مأموريات لعرضها</td></tr>';
+                return;
+            }
+            let displayedCount = 0;
             for (let id in data) {
                 const mission = data[id];
-                if (!isAdmin && mission.userEmail !== currentUserEmail) continue;
+                if (!isAdmin && mission.userEmail !== currentUserEmail) {
+                    console.log(`تخطي المأمورية ${id}: البريد ${mission.userEmail} لا يتطابق مع ${currentUserEmail}`);
+                    continue;
+                }
                 const statusClass = getStatusClass(mission.status);
                 const isEditable = (mission.status !== 'تم المراجعة' && mission.status !== 'تم الرفض') || isAdmin;
                 const netOdometer = calculateNetOdometer(mission.startOdometer, mission.endOdometer);
+                const createdAt = mission.createdAt ? new Date(mission.createdAt).toLocaleString('ar-EG') : '';
                 const row = `<tr>
                     ${isAdmin ? `<td><input type="checkbox" value="${id}"></td>` : ''}
                     <td>${mission.date || ''}</td>
@@ -372,10 +413,16 @@
                     <td class="${statusClass}">${mission.status || 'جاري المراجعة'}</td>
                     <td>${mission.notes || ''}</td>
                     ${isAdmin ? `<td>${mission.userEmail || ''}</td>` : ''}
+                    ${isAdmin ? `<td>${createdAt}</td>` : ''}
                     <td><button class="edit-btn" onclick="openEditMissionForm('${id}')" ${!isEditable ? 'disabled' : ''}>تعديل</button></td>
                     ${isAdmin ? `<td><button class="delete-btn" onclick="deleteMission('${id}')">حذف</button></td>` : ''}
                 </tr>`;
                 missionsTableBody.innerHTML += row;
+                displayedCount++;
+            }
+            console.log(`تم عرض ${displayedCount} مأمورية في الجدول`);
+            if (displayedCount === 0) {
+                missionsTableBody.innerHTML = '<tr><td colspan="17">لا توجد مأموريات متاحة لعرضها</td></tr>';
             }
         }
 
@@ -388,25 +435,46 @@
         function fetchAndDisplayReceipts() {
             const cachedReceipts = getFromLocalStorage('receipts');
             if (cachedReceipts) {
+                console.log('عرض بيانات الإيصالات من التخزين المحلي:', cachedReceipts);
                 displayReceipts(cachedReceipts);
+            } else {
+                console.log('لا توجد بيانات إيصالات في التخزين المحلي');
             }
 
             const receiptsRef = ref(database, 'receipts');
             onValue(receiptsRef, (snapshot) => {
-                const data = snapshot.val();
-                saveToLocalStorage('receipts', data);
-                displayReceipts(data);
+                if (snapshot.exists()) {
+                    const data = snapshot.val();
+                    console.log('بيانات الإيصالات المجلوبة من Firebase:', data);
+                    saveToLocalStorage('receipts', data);
+                    displayReceipts(data);
+                } else {
+                    console.log('لا توجد بيانات في مسار receipts في Firebase');
+                    displayReceipts({});
+                }
+            }, (error) => {
+                console.error('خطأ في جلب بيانات الإيصالات من Firebase:', error);
             });
         }
 
         function displayReceipts(data) {
             const receiptsTableBody = document.getElementById('receiptsTableBody');
             receiptsTableBody.innerHTML = '';
+            if (!data || Object.keys(data).length === 0) {
+                console.log('لا توجد بيانات لعرضها في جدول الإيصالات');
+                receiptsTableBody.innerHTML = '<tr><td colspan="16">لا توجد إيصالات لعرضها</td></tr>';
+                return;
+            }
+            let displayedCount = 0;
             for (let id in data) {
                 const receipt = data[id];
-                if (!isAdmin && receipt.userEmail !== currentUserEmail) continue;
+                if (!isAdmin && receipt.userEmail !== currentUserEmail) {
+                    console.log(`تخطي الإيصال ${id}: البريد ${receipt.userEmail} لا يتطابق مع ${currentUserEmail}`);
+                    continue;
+                }
                 const statusClass = getStatusClass(receipt.status);
                 const isEditable = (receipt.status !== 'تم المراجعة' && receipt.status !== 'تم الرفض') || isAdmin;
+                const createdAt = receipt.createdAt ? new Date(receipt.createdAt).toLocaleString('ar-EG') : '';
                 const row = `<tr>
                     ${isAdmin ? `<td><input type="checkbox" value="${id}"></td>` : ''}
                     <td>${receipt.date || ''}</td>
@@ -422,56 +490,76 @@
                     <td>${receipt.delayTime || ''}</td>
                     <td>${receipt.notes || ''}</td>
                     ${isAdmin ? `<td>${receipt.userEmail || ''}</td>` : ''}
+                    ${isAdmin ? `<td>${createdAt}</td>` : ''}
                     <td><button class="edit-btn" onclick="openEditReceiptForm('${id}')" ${!isEditable ? 'disabled' : ''}>تعديل</button></td>
                     ${isAdmin ? `<td><button class="delete-btn" onclick="deleteReceipt('${id}')">حذف</button></td>` : ''}
                 </tr>`;
                 receiptsTableBody.innerHTML += row;
+                displayedCount++;
+            }
+            console.log(`تم عرض ${displayedCount} إيصال في الجدول`);
+            if (displayedCount === 0) {
+                receiptsTableBody.innerHTML = '<tr><td colspan="16">لا توجد إيصالات متاحة لعرضها</td></tr>';
             }
         }
 
         window.openEditMissionForm = function(id) {
             const missionRef = ref(database, `missions/${id}`);
             onValue(missionRef, (snapshot) => {
-                const mission = snapshot.val();
-                document.getElementById('editMissionId').value = id;
-                document.getElementById('editMissionDate').value = mission.date || '';
-                document.getElementById('editMissionDriver').value = mission.driver || '';
-                document.getElementById('editMissionCarNumber').value = mission.carNumber || '';
-                document.getElementById('editMissionDelegate').value = mission.delegate || '';
-                document.getElementById('editMissionDirection').value = mission.direction || '';
-                document.getElementById('editMissionTourNumber').value = mission.tourNumber || '';
-                document.getElementById('editMissionStartOdometer').value = mission.startOdometer || '';
-                document.getElementById('editMissionEndOdometer').value = mission.endOdometer || '';
-                document.getElementById('editMissionTripDays').value = mission.tripDays || '';
-                document.getElementById('editMissionOvernightAllowance').value = mission.overnightAllowance || 'لا';
-                document.getElementById('editMissionNotes').value = mission.notes || '';
-                if (isAdmin) {
-                    document.getElementById('editMissionStatus').value = mission.status || 'جاري المراجعة';
+                if (snapshot.exists()) {
+                    const mission = snapshot.val();
+                    console.log(`تحميل بيانات المأمورية ${id} للتعديل:`, mission);
+                    document.getElementById('editMissionId').value = id;
+                    document.getElementById('editMissionDate').value = mission.date || '';
+                    document.getElementById('editMissionDriver').value = mission.driver || '';
+                    document.getElementById('editMissionCarNumber').value = mission.carNumber || '';
+                    document.getElementById('editMissionDelegate').value = mission.delegate || '';
+                    document.getElementById('editMissionDirection').value = mission.direction || '';
+                    document.getElementById('editMissionTourNumber').value = mission.tourNumber || '';
+                    document.getElementById('editMissionStartOdometer').value = mission.startOdometer || '';
+                    document.getElementById('editMissionEndOdometer').value = mission.endOdometer || '';
+                    document.getElementById('editMissionTripDays').value = mission.tripDays || '';
+                    document.getElementById('editMissionOvernightAllowance').value = mission.overnightAllowance || 'لا';
+                    document.getElementById('editMissionNotes').value = mission.notes || '';
+                    if (isAdmin) {
+                        document.getElementById('editMissionStatus').value = mission.status || 'جاري المراجعة';
+                    }
+                    document.getElementById('editMissionForm').style.display = 'block';
+                } else {
+                    console.error(`المأمورية ${id} غير موجودة`);
                 }
-                document.getElementById('editMissionForm').style.display = 'block';
+            }, (error) => {
+                console.error('خطأ في تحميل بيانات المأمورية:', error);
             });
         }
 
         window.openEditReceiptForm = function(id) {
             const receiptRef = ref(database, `receipts/${id}`);
             onValue(receiptRef, (snapshot) => {
-                const receipt = snapshot.val();
-                document.getElementById('editReceiptId').value = id;
-                document.getElementById('editReceiptDate').value = receipt.date || '';
-                document.getElementById('editReceiptDriver').value = receipt.driver || '';
-                document.getElementById('editReceiptDelegate').value = receipt.delegate || '';
-                document.getElementById('editReceiptCarNumber').value = receipt.carNumber || '';
-                document.getElementById('editReceiptType').value = receipt.receiptType || '';
-                document.getElementById('editReceiptGovernorate').value = receipt.governorate || '';
-                document.getElementById('editReceiptProduct').value = receipt.product || '';
-                document.getElementById('editReceiptFloorNumber').value = receipt.floorNumber || '';
-                document.getElementById('editReceiptOrderNumber').value = receipt.orderNumber || '';
-                document.getElementById('editReceiptDelayTime').value = receipt.delayTime || '';
-                document.getElementById('editReceiptNotes').value = receipt.notes || '';
-                if (isAdmin) {
-                    document.getElementById('editReceiptStatus').value = receipt.status || 'جاري المراجعة';
+                if (snapshot.exists()) {
+                    const receipt = snapshot.val();
+                    console.log(`تحميل بيانات الإيصال ${id} للتعديل:`, receipt);
+                    document.getElementById('editReceiptId').value = id;
+                    document.getElementById('editReceiptDate').value = receipt.date || '';
+                    document.getElementById('editReceiptDriver').value = receipt.driver || '';
+                    document.getElementById('editReceiptDelegate').value = receipt.delegate || '';
+                    document.getElementById('editReceiptCarNumber').value = receipt.carNumber || '';
+                    document.getElementById('editReceiptType').value = receipt.receiptType || '';
+                    document.getElementById('editReceiptGovernorate').value = receipt.governorate || '';
+                    document.getElementById('editReceiptProduct').value = receipt.product || '';
+                    document.getElementById('editReceiptFloorNumber').value = receipt.floorNumber || '';
+                    document.getElementById('editReceiptOrderNumber').value = receipt.orderNumber || '';
+                    document.getElementById('editReceiptDelayTime').value = receipt.delayTime || '';
+                    document.getElementById('editReceiptNotes').value = receipt.notes || '';
+                    if (isAdmin) {
+                        document.getElementById('editReceiptStatus').value = receipt.status || 'جاري المراجعة';
+                    }
+                    document.getElementById('editReceiptForm').style.display = 'block';
+                } else {
+                    console.error(`الإيصال ${id} غير موجود`);
                 }
-                document.getElementById('editReceiptForm').style.display = 'block';
+            }, (error) => {
+                console.error('خطأ في تحميل بيانات الإيصال:', error);
             });
         }
 
@@ -493,13 +581,19 @@
             if (isAdmin) {
                 updatedMission.status = document.getElementById('editMissionStatus').value;
             }
+            document.getElementById('loadingIndicator').style.display = 'block';
             update(ref(database, `missions/${id}`), updatedMission).then(() => {
+                console.log(`تم تحديث المأمورية ${id}`);
                 const missions = getFromLocalStorage('missions') || {};
                 missions[id] = updatedMission;
                 saveToLocalStorage('missions', missions);
                 displayMissions(missions);
+            }).catch((error) => {
+                console.error('خطأ في تحديث المأمورية:', error);
+            }).finally(() => {
+                document.getElementById('loadingIndicator').style.display = 'none';
+                closeEditForm('editMissionForm');
             });
-            closeEditForm('editMissionForm');
         }
 
         window.updateReceipt = function() {
@@ -520,13 +614,19 @@
             if (isAdmin) {
                 updatedReceipt.status = document.getElementById('editReceiptStatus').value;
             }
+            document.getElementById('loadingIndicator').style.display = 'block';
             update(ref(database, `receipts/${id}`), updatedReceipt).then(() => {
+                console.log(`تم تحديث الإيصال ${id}`);
                 const receipts = getFromLocalStorage('receipts') || {};
                 receipts[id] = updatedReceipt;
                 saveToLocalStorage('receipts', receipts);
                 displayReceipts(receipts);
+            }).catch((error) => {
+                console.error('خطأ في تحديث الإيصال:', error);
+            }).finally(() => {
+                document.getElementById('loadingIndicator').style.display = 'none';
+                closeEditForm('editReceiptForm');
             });
-            closeEditForm('editReceiptForm');
         }
 
         window.closeEditForm = function(formId) {
@@ -535,22 +635,34 @@
 
         window.deleteMission = function(id) {
             if (confirm('هل أنت متأكد من حذف هذه المأمورية؟')) {
+                document.getElementById('loadingIndicator').style.display = 'block';
                 remove(ref(database, `missions/${id}`)).then(() => {
+                    console.log(`تم حذف المأمورية ${id}`);
                     const missions = getFromLocalStorage('missions') || {};
                     delete missions[id];
                     saveToLocalStorage('missions', missions);
                     displayMissions(missions);
+                }).catch((error) => {
+                    console.error('خطأ في حذف المأمورية:', error);
+                }).finally(() => {
+                    document.getElementById('loadingIndicator').style.display = 'none';
                 });
             }
         }
 
         window.deleteReceipt = function(id) {
             if (confirm('هل أنت متأكد من حذف هذا الإيصال؟')) {
+                document.getElementById('loadingIndicator').style.display = 'block';
                 remove(ref(database, `receipts/${id}`)).then(() => {
+                    console.log(`تم حذف الإيصال ${id}`);
                     const receipts = getFromLocalStorage('receipts') || {};
                     delete receipts[id];
                     saveToLocalStorage('receipts', receipts);
                     displayReceipts(receipts);
+                }).catch((error) => {
+                    console.error('خطأ في حذف الإيصال:', error);
+                }).finally(() => {
+                    document.getElementById('loadingIndicator').style.display = 'none';
                 });
             }
         }
@@ -573,7 +685,8 @@
             const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
             const blob = new Blob([s2ab(wbout)], { type: 'application/octet-stream' });
             const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');            a.href = url;
+            const a = document.createElement('a');
+            a.href = url;
             a.download = fileName;
             document.body.appendChild(a);
             a.click();
@@ -613,9 +726,11 @@
                 };
                 if (isAdmin) {
                     rowData['البريد الإلكتروني للمسجل'] = row.cells[startIndex + 13].innerText;
+                    rowData['تاريخ التسجيل'] = row.cells[startIndex + 14].innerText;
                 }
                 data.push(rowData);
             }
+            console.log('بيانات المأموريات للتصدير:', data);
             return data;
         }
 
@@ -641,9 +756,11 @@
                 };
                 if (isAdmin) {
                     rowData['البريد الإلكتروني للمسجل'] = row.cells[startIndex + 12].innerText;
+                    rowData['تاريخ التسجيل'] = row.cells[startIndex + 13].innerText;
                 }
                 data.push(rowData);
             }
+            console.log('بيانات الإيصالات للتصدير:', data);
             return data;
         }
 
@@ -679,29 +796,24 @@
                 const cellB = rowB.cells[colIndex].textContent.trim();
 
                 if (!isNaN(cellA) && !isNaN(cellB)) {
-                    // Compare numbers
                     return asc ? cellA - cellB : cellB - cellA;
                 } else {
-                    // Compare strings
                     return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
                 }
             });
 
-            // Append sorted rows to the table body
             rowsArray.forEach(row => tbody.appendChild(row));
         }
 
-        // Adding click listeners to table headers for sorting
         document.querySelectorAll('#missionsTable th, #receiptsTable th').forEach((header, index) => {
-            let asc = true; // Ascending order flag
+            let asc = true;
             header.addEventListener('click', () => {
                 const tableId = header.closest('table').id;
                 sortTable(tableId, index, asc);
-                asc = !asc; // Toggle the sorting order
+                asc = !asc;
             });
         });
 
-        // New functions for bulk editing
         window.openBulkEditMissionForm = function() {
             document.getElementById('bulkEditMissionForm').style.display = 'block';
         }
@@ -722,33 +834,79 @@
         window.updateBulkMissions = function() {
             const newStatus = document.getElementById('bulkEditMissionStatus').value;
             const selectedMissions = getSelectedItems('missionsTable');
+
+            if (selectedMissions.length === 0) {
+                alert('يرجى تحديد مأمورية واحدة على الأقل');
+                closeEditForm('bulkEditMissionForm');
+                return;
+            }
+
+            document.getElementById('loadingIndicator').style.display = 'block';
+
+            const updates = {};
             selectedMissions.forEach(id => {
-                update(ref(database, `missions/${id}`), { status: newStatus }).then(() => {
-                    const missions = getFromLocalStorage('missions') || {};
-                    if (missions[id]) {
-                        missions[id].status = newStatus;
-                        saveToLocalStorage('missions', missions);
-                    }
-                });
+                updates[`missions/${id}/status`] = newStatus;
             });
-            closeEditForm('bulkEditMissionForm');
-            fetchAndDisplayMissions();
+
+            update(ref(database), updates)
+                .then(() => {
+                    console.log(`تم تحديث حالة ${selectedMissions.length} مأمورية إلى ${newStatus}`);
+                    const missions = getFromLocalStorage('missions') || {};
+                    selectedMissions.forEach(id => {
+                        if (missions[id]) {
+                            missions[id].status = newStatus;
+                        }
+                    });
+                    saveToLocalStorage('missions', missions);
+                    displayMissions(missions);
+                })
+                .catch((error) => {
+                    console.error('خطأ في تحديث الحالة الجماعية للمأموريات:', error);
+                    alert('حدث خطأ أثناء تحديث المأموريات');
+                })
+                .finally(() => {
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    closeEditForm('bulkEditMissionForm');
+                });
         }
 
         window.updateBulkReceipts = function() {
             const newStatus = document.getElementById('bulkEditReceiptStatus').value;
             const selectedReceipts = getSelectedItems('receiptsTable');
+
+            if (selectedReceipts.length === 0) {
+                alert('يرجى تحديد إيصال واحد على الأقل');
+                closeEditForm('bulkEditReceiptForm');
+                return;
+            }
+
+            document.getElementById('loadingIndicator').style.display = 'block';
+
+            const updates = {};
             selectedReceipts.forEach(id => {
-                update(ref(database, `receipts/${id}`), { status: newStatus }).then(() => {
-                    const receipts = getFromLocalStorage('receipts') || {};
-                    if (receipts[id]) {
-                        receipts[id].status = newStatus;
-                        saveToLocalStorage('receipts', receipts);
-                    }
-                });
+                updates[`receipts/${id}/status`] = newStatus;
             });
-            closeEditForm('bulkEditReceiptForm');
-            fetchAndDisplayReceipts();
+
+            update(ref(database), updates)
+                .then(() => {
+                    console.log(`تم تحديث حالة ${selectedReceipts.length} إيصال إلى ${newStatus}`);
+                    const receipts = getFromLocalStorage('receipts') || {};
+                    selectedReceipts.forEach(id => {
+                        if (receipts[id]) {
+                            receipts[id].status = newStatus;
+                        }
+                    });
+                    saveToLocalStorage('receipts', receipts);
+                    displayReceipts(receipts);
+                })
+                .catch((error) => {
+                    console.error('خطأ في تحديث الحالة الجماعية للإيصالات:', error);
+                    alert('حدث خطأ أثناء تحديث الإيصالات');
+                })
+                .finally(() => {
+                    document.getElementById('loadingIndicator').style.display = 'none';
+                    closeEditForm('bulkEditReceiptForm');
+                });
         }
 
         function getSelectedItems(tableId) {
@@ -757,7 +915,6 @@
             return Array.from(checkboxes).map(checkbox => checkbox.value).filter(id => id);
         }
 
-        // Initialize the page
         fetchAndDisplayMissions();
         fetchAndDisplayReceipts();
     </script>
