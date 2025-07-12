@@ -26,7 +26,7 @@
         }
         textarea {
             height: 100px;
-            resize: verticalYOU;
+            resize: vertical;
         }
         button {
             background-color: #4CAF50;
@@ -157,7 +157,7 @@
 
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-        import { getDatabase, ref, push, set, get, remove } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+        import { getDatabase, ref, push, set, get, remove, query, orderByChild, equalTo } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
         const firebaseConfig = {
@@ -248,52 +248,82 @@
         document.getElementById('startOdometerInput').addEventListener('input', calculateNetOdometer);
         document.getElementById('endOdometerInput').addEventListener('input', calculateNetOdometer);
 
-        missionForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            
-            const netOdometer = calculateNetOdometer();
-            if (netOdometer < 0) {
-                document.getElementById('message').textContent = 'خطأ: عداد النهاية يجب أن يكون أكبر من أو يساوي عداد البداية';
-                return;
+        async function checkExistingMission(date, driver) {
+            const missionsRef = ref(database, 'missions');
+            const missionsQuery = query(missionsRef, orderByChild('driver'), equalTo(driver));
+            try {
+                const snapshot = await get(missionsQuery);
+                if (snapshot.exists()) {
+                    let missionExists = false;
+                    snapshot.forEach((childSnapshot) => {
+                        const missionData = childSnapshot.val();
+                        if (missionData.date === date) {
+                            missionExists = true;
+                        }
+                    });
+                    return missionExists;
+                }
+                return false;
+            } catch (error) {
+                console.error('خطأ في التحقق من المأموريات السابقة:', error);
+                throw error;
             }
+        }
 
-            submitButton.disabled = true;
-            submitButton.textContent = 'جاري التسجيل...';
+        missionForm.addEventListener('submit', async function(e) {
+            e.preventDefault();
 
-            const missionData = {
-                date: document.getElementById('dateInput').value,
-                driver: document.getElementById('driverInput').value,
-                carNumber: document.getElementById('carNumberInput').value,
-                delegate: document.getElementById('delegateInput').value,
-                direction: document.getElementById('directionInput').value,
-                tourNumber: document.getElementById('tourNumberInput').value,
-                startOdometer: document.getElementById('startOdometerInput').value,
-                endOdometer: document.getElementById('endOdometerInput').value,
-                netOdometer: document.getElementById('netOdometerInput').value,
-                tripDays: document.getElementById('tripDaysInput').value,
-                overnightAllowance: document.getElementById('overnightAllowanceInput').value,
-                notes: document.getElementById('notesInput').value,
-                userEmail: currentUserEmail,
-                createdAt: Date.now(),
-                status: 'جاري المراجعة' // إضافة حالة افتراضية
-            };
+            const date = document.getElementById('dateInput').value;
+            const driver = document.getElementById('driverInput').value;
 
-            console.log('بيانات المأمورية للتسجيل:', missionData);
+            try {
+                const missionExists = await checkExistingMission(date, driver);
+                if (missionExists) {
+                    alert('يوجد مأمورية مسجلة لهذا السائق بنفس التاريخ! لا يمكن تسجيل مأمورية أخرى.');
+                    return;
+                }
 
-            push(ref(database, 'missions'), missionData)
-                .then(() => {
-                    document.getElementById('message').textContent = 'تم تسجيل المأمورية بنجاح!';
-                    console.log('تم تسجيل المأمورية بنجاح في Firebase');
-                    missionForm.reset();
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'تسجيل';
-                })
-                .catch((error) => {
-                    document.getElementById('message').textContent = 'حدث خطأ: ' + error.message;
-                    console.error('خطأ في تسجيل المأمورية:', error);
-                    submitButton.disabled = false;
-                    submitButton.textContent = 'تسجيل';
-                });
+                const netOdometer = calculateNetOdometer();
+                if (netOdometer < 0) {
+                    document.getElementById('message').textContent = 'خطأ: عداد النهاية يجب أن يكون أكبر من أو يساوي عداد البداية';
+                    return;
+                }
+
+                submitButton.disabled = true;
+                submitButton.textContent = 'جاري التسجيل...';
+
+                const missionData = {
+                    date: date,
+                    driver: driver,
+                    carNumber: document.getElementById('carNumberInput').value,
+                    delegate: document.getElementById('delegateInput').value,
+                    direction: document.getElementById('directionInput').value,
+                    tourNumber: document.getElementById('tourNumberInput').value,
+                    startOdometer: document.getElementById('startOdometerInput').value,
+                    endOdometer: document.getElementById('endOdometerInput').value,
+                    netOdometer: document.getElementById('netOdometerInput').value,
+                    tripDays: document.getElementById('tripDaysInput').value,
+                    overnightAllowance: document.getElementById('overnightAllowanceInput').value,
+                    notes: document.getElementById('notesInput').value,
+                    userEmail: currentUserEmail,
+                    createdAt: Date.now(),
+                    status: 'جاري المراجعة'
+                };
+
+                console.log('بيانات المأمورية للتسجيل:', missionData);
+
+                await push(ref(database, 'missions'), missionData);
+                document.getElementById('message').textContent = 'تم تسجيل المأمورية بنجاح!';
+                console.log('تم تسجيل المأمورية بنجاح في Firebase');
+                missionForm.reset();
+                submitButton.disabled = false;
+                submitButton.textContent = 'تسجيل';
+            } catch (error) {
+                document.getElementById('message').textContent = 'حدث خطأ: ' + error.message;
+                console.error('خطأ في تسجيل المأمورية:', error);
+                submitButton.disabled = false;
+                submitButton.textContent = 'تسجيل';
+            }
         });
 
         function loadDriversAndDelegates() {
