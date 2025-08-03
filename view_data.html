@@ -386,13 +386,20 @@
                 missionsTableBody.innerHTML = '<tr><td colspan="17">لا توجد مأموريات لعرضها</td></tr>';
                 return;
             }
+            
+            // تحويل البيانات إلى مصفوفة وفرزها حسب createdAt تنازليًا
+            const missionsArray = Object.keys(data).map(id => ({
+                id,
+                ...data[id]
+            })).filter(mission => isAdmin || mission.userEmail === currentUserEmail)
+              .sort((a, b) => {
+                  const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                  const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                  return timeB - timeA; // ترتيب تنازلي (الأحدث أولاً)
+              });
+
             let displayedCount = 0;
-            for (let id in data) {
-                const mission = data[id];
-                if (!isAdmin && mission.userEmail !== currentUserEmail) {
-                    console.log(`تخطي المأمورية ${id}: البريد ${mission.userEmail} لا يتطابق مع ${currentUserEmail}`);
-                    continue;
-                }
+            missionsArray.forEach(({ id, ...mission }) => {
                 const statusClass = getStatusClass(mission.status);
                 const isEditable = (mission.status !== 'تم المراجعة' && mission.status !== 'تم الرفض') || isAdmin;
                 const netOdometer = calculateNetOdometer(mission.startOdometer, mission.endOdometer);
@@ -419,7 +426,7 @@
                 </tr>`;
                 missionsTableBody.innerHTML += row;
                 displayedCount++;
-            }
+            });
             console.log(`تم عرض ${displayedCount} مأمورية في الجدول`);
             if (displayedCount === 0) {
                 missionsTableBody.innerHTML = '<tr><td colspan="17">لا توجد مأموريات متاحة لعرضها</td></tr>';
@@ -465,13 +472,20 @@
                 receiptsTableBody.innerHTML = '<tr><td colspan="16">لا توجد إيصالات لعرضها</td></tr>';
                 return;
             }
+
+            // تحويل البيانات إلى مصفوفة وفرزها حسب createdAt تنازليًا
+            const receiptsArray = Object.keys(data).map(id => ({
+                id,
+                ...data[id]
+            })).filter(receipt => isAdmin || receipt.userEmail === currentUserEmail)
+              .sort((a, b) => {
+                  const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+                  const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+                  return timeB - timeA; // ترتيب تنازلي (الأحدث أولاً)
+              });
+
             let displayedCount = 0;
-            for (let id in data) {
-                const receipt = data[id];
-                if (!isAdmin && receipt.userEmail !== currentUserEmail) {
-                    console.log(`تخطي الإيصال ${id}: البريد ${receipt.userEmail} لا يتطابق مع ${currentUserEmail}`);
-                    continue;
-                }
+            receiptsArray.forEach(({ id, ...receipt }) => {
                 const statusClass = getStatusClass(receipt.status);
                 const isEditable = (receipt.status !== 'تم المراجعة' && receipt.status !== 'تم الرفض') || isAdmin;
                 const createdAt = receipt.createdAt ? new Date(receipt.createdAt).toLocaleString('ar-EG') : '';
@@ -496,7 +510,7 @@
                 </tr>`;
                 receiptsTableBody.innerHTML += row;
                 displayedCount++;
-            }
+            });
             console.log(`تم عرض ${displayedCount} إيصال في الجدول`);
             if (displayedCount === 0) {
                 receiptsTableBody.innerHTML = '<tr><td colspan="16">لا توجد إيصالات متاحة لعرضها</td></tr>';
@@ -824,8 +838,9 @@
 
         window.toggleAllCheckboxes = function(tableId) {
             const table = document.getElementById(tableId);
-            const checkboxes = table.querySelectorAll('input[type="checkbox"]');
+            const checkboxes = table.querySelectorAll('tbody tr:not([style*="display: none"]) input[type="checkbox"]');
             const selectAllCheckbox = document.getElementById(`selectAll${tableId === 'missionsTable' ? 'Missions' : 'Receipts'}`);
+            
             checkboxes.forEach(checkbox => {
                 checkbox.checked = selectAllCheckbox.checked;
             });
@@ -911,7 +926,7 @@
 
         function getSelectedItems(tableId) {
             const table = document.getElementById(tableId);
-            const checkboxes = table.querySelectorAll('input[type="checkbox"]:checked');
+            const checkboxes = table.querySelectorAll('tbody tr:not([style*="display: none"]) input[type="checkbox"]:checked');
             return Array.from(checkboxes).map(checkbox => checkbox.value).filter(id => id);
         }
 
