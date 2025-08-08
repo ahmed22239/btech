@@ -86,6 +86,7 @@
         <button id="newMissionButton">تسجيل مأمورية جديدة</button>
         <button id="newReceiptButton">تسجيل إيصال جديد</button>
         <button id="viewDataButton">عرض البيانات المسجلة</button>
+        <button id="expensesButton">تفاصيل المبالغ المصروفة</button>
         <button id="logoutButton">تسجيل الخروج</button>
     </div>
 
@@ -137,6 +138,10 @@
 
         document.getElementById('viewDataButton').addEventListener('click', function() {
             window.location.href = 'view_data.html';
+        });
+
+        document.getElementById('expensesButton').addEventListener('click', function() {
+            window.location.href = 'employee_expenses.html';
         });
 
         document.getElementById('logoutButton').addEventListener('click', function() {
