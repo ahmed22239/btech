@@ -312,7 +312,9 @@
             return data ? JSON.parse(data) : null;
         }
 
+        // التحقق من حالة تسجيل الدخول مع تسجيل أخطاء واضح
         onAuthStateChanged(auth, (user) => {
+            console.log('onAuthStateChanged triggered');
             if (user) {
                 currentUserEmail = user.email;
                 console.log('المستخدم الحالي:', currentUserEmail);
@@ -331,13 +333,20 @@
                     document.getElementById('selectAllReceiptsHeader').style.display = 'table-cell';
                     document.getElementById('missionCreatedAtHeader').style.display = 'table-cell';
                     document.getElementById('receiptCreatedAtHeader').style.display = 'table-cell';
+                } else {
+                    console.log('المستخدم عادي:', currentUserEmail);
                 }
                 fetchAndDisplayMissions();
                 fetchAndDisplayReceipts();
             } else {
-                console.log('لم يتم تسجيل دخول المستخدم، إعادة توجيه إلى صفحة تسجيل الدخول');
+                console.error('لم يتم تسجيل دخول المستخدم');
+                alert('يرجى تسجيل الدخول أولاً.');
                 window.location.href = 'login.html';
             }
+        }, (error) => {
+            console.error('خطأ في التحقق من حالة تسجيل الدخول:', error);
+            alert('خطأ في التحقق من حالة تسجيل الدخول: ' + error.message);
+            window.location.href = 'login.html';
         });
 
         function getStatusClass(status) {
@@ -354,27 +363,30 @@
         }
 
         function fetchAndDisplayMissions() {
+            console.log('جلب بيانات المأموريات...');
             const cachedMissions = getFromLocalStorage('missions');
             if (cachedMissions) {
                 console.log('عرض البيانات من التخزين المحلي:', cachedMissions);
                 displayMissions(cachedMissions);
             } else {
-                console.log('لا توجد بيانات في التخزين المحلي');
+                console.log('لا توجد بيانات في التخزين المحلي للمأموريات');
             }
 
             const missionsRef = ref(database, 'missions');
             onValue(missionsRef, (snapshot) => {
                 if (snapshot.exists()) {
                     const data = snapshot.val();
-                    console.log('البيانات المجلوبة من Firebase:', data);
+                    console.log('البيانات المجلوبة من Firebase (missions):', data);
                     saveToLocalStorage('missions', data);
                     displayMissions(data);
                 } else {
                     console.log('لا توجد بيانات في مسار missions في Firebase');
                     displayMissions({});
+                    document.getElementById('missionsTableBody').innerHTML = '<tr><td colspan="17">لا توجد مأموريات لعرضها</td></tr>';
                 }
             }, (error) => {
-                console.error('خطأ في جلب البيانات من Firebase:', error);
+                console.error('خطأ في جلب بيانات المأموريات من Firebase:', error);
+                alert('حدث خطأ أثناء جلب بيانات المأموريات: ' + error.message);
             });
         }
 
@@ -387,7 +399,6 @@
                 return;
             }
             
-            // تحويل البيانات إلى مصفوفة وفرزها حسب createdAt تنازليًا
             const missionsArray = Object.keys(data).map(id => ({
                 id,
                 ...data[id]
@@ -395,7 +406,7 @@
               .sort((a, b) => {
                   const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
                   const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                  return timeB - timeA; // ترتيب تنازلي (الأحدث أولاً)
+                  return timeB - timeA; // ترتيب تنازلي
               });
 
             let displayedCount = 0;
@@ -440,7 +451,8 @@
         }
 
         function fetchAndDisplayReceipts() {
-            const cachedReceipts = getFromLocalStorage('receipts');
+            console.log('جلب بيانات الإيصالات...');
+            const cachedReceipts = getFromLocalStorage('driver_receipts');
             if (cachedReceipts) {
                 console.log('عرض بيانات الإيصالات من التخزين المحلي:', cachedReceipts);
                 displayReceipts(cachedReceipts);
@@ -448,19 +460,21 @@
                 console.log('لا توجد بيانات إيصالات في التخزين المحلي');
             }
 
-            const receiptsRef = ref(database, 'receipts');
+            const receiptsRef = ref(database, 'driver_receipts');
             onValue(receiptsRef, (snapshot) => {
                 if (snapshot.exists()) {
                     const data = snapshot.val();
-                    console.log('بيانات الإيصالات المجلوبة من Firebase:', data);
-                    saveToLocalStorage('receipts', data);
+                    console.log('بيانات الإيصالات المجلوبة من Firebase (driver_receipts):', data);
+                    saveToLocalStorage('driver_receipts', data);
                     displayReceipts(data);
                 } else {
-                    console.log('لا توجد بيانات في مسار receipts في Firebase');
+                    console.log('لا توجد بيانات في مسار driver_receipts في Firebase');
                     displayReceipts({});
+                    document.getElementById('receiptsTableBody').innerHTML = '<tr><td colspan="16">لا توجد إيصالات لعرضها</td></tr>';
                 }
             }, (error) => {
                 console.error('خطأ في جلب بيانات الإيصالات من Firebase:', error);
+                alert('حدث خطأ أثناء جلب بيانات الإيصالات: ' + error.message);
             });
         }
 
@@ -473,7 +487,6 @@
                 return;
             }
 
-            // تحويل البيانات إلى مصفوفة وفرزها حسب createdAt تنازليًا
             const receiptsArray = Object.keys(data).map(id => ({
                 id,
                 ...data[id]
@@ -481,7 +494,7 @@
               .sort((a, b) => {
                   const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
                   const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                  return timeB - timeA; // ترتيب تنازلي (الأحدث أولاً)
+                  return timeB - timeA; // ترتيب تنازلي
               });
 
             let displayedCount = 0;
@@ -541,14 +554,16 @@
                     document.getElementById('editMissionForm').style.display = 'block';
                 } else {
                     console.error(`المأمورية ${id} غير موجودة`);
+                    alert(`المأمورية ${id} غير موجودة`);
                 }
             }, (error) => {
                 console.error('خطأ في تحميل بيانات المأمورية:', error);
+                alert('خطأ في تحميل بيانات المأمورية: ' + error.message);
             });
         }
 
         window.openEditReceiptForm = function(id) {
-            const receiptRef = ref(database, `receipts/${id}`);
+            const receiptRef = ref(database, `driver_receipts/${id}`);
             onValue(receiptRef, (snapshot) => {
                 if (snapshot.exists()) {
                     const receipt = snapshot.val();
@@ -571,9 +586,11 @@
                     document.getElementById('editReceiptForm').style.display = 'block';
                 } else {
                     console.error(`الإيصال ${id} غير موجود`);
+                    alert(`الإيصال ${id} غير موجود`);
                 }
             }, (error) => {
                 console.error('خطأ في تحميل بيانات الإيصال:', error);
+                alert('خطأ في تحميل بيانات الإيصال: ' + error.message);
             });
         }
 
@@ -602,8 +619,10 @@
                 missions[id] = updatedMission;
                 saveToLocalStorage('missions', missions);
                 displayMissions(missions);
+                alert('تم تحديث المأمورية بنجاح');
             }).catch((error) => {
                 console.error('خطأ في تحديث المأمورية:', error);
+                alert('خطأ في تحديث المأمورية: ' + error.message);
             }).finally(() => {
                 document.getElementById('loadingIndicator').style.display = 'none';
                 closeEditForm('editMissionForm');
@@ -629,14 +648,16 @@
                 updatedReceipt.status = document.getElementById('editReceiptStatus').value;
             }
             document.getElementById('loadingIndicator').style.display = 'block';
-            update(ref(database, `receipts/${id}`), updatedReceipt).then(() => {
+            update(ref(database, `driver_receipts/${id}`), updatedReceipt).then(() => {
                 console.log(`تم تحديث الإيصال ${id}`);
-                const receipts = getFromLocalStorage('receipts') || {};
+                const receipts = getFromLocalStorage('driver_receipts') || {};
                 receipts[id] = updatedReceipt;
-                saveToLocalStorage('receipts', receipts);
+                saveToLocalStorage('driver_receipts', receipts);
                 displayReceipts(receipts);
+                alert('تم تحديث الإيصال بنجاح');
             }).catch((error) => {
                 console.error('خطأ في تحديث الإيصال:', error);
+                alert('خطأ في تحديث الإيصال: ' + error.message);
             }).finally(() => {
                 document.getElementById('loadingIndicator').style.display = 'none';
                 closeEditForm('editReceiptForm');
@@ -656,8 +677,10 @@
                     delete missions[id];
                     saveToLocalStorage('missions', missions);
                     displayMissions(missions);
+                    alert('تم حذف المأمورية بنجاح');
                 }).catch((error) => {
                     console.error('خطأ في حذف المأمورية:', error);
+                    alert('خطأ في حذف المأمورية: ' + error.message);
                 }).finally(() => {
                     document.getElementById('loadingIndicator').style.display = 'none';
                 });
@@ -667,14 +690,16 @@
         window.deleteReceipt = function(id) {
             if (confirm('هل أنت متأكد من حذف هذا الإيصال؟')) {
                 document.getElementById('loadingIndicator').style.display = 'block';
-                remove(ref(database, `receipts/${id}`)).then(() => {
+                remove(ref(database, `driver_receipts/${id}`)).then(() => {
                     console.log(`تم حذف الإيصال ${id}`);
-                    const receipts = getFromLocalStorage('receipts') || {};
+                    const receipts = getFromLocalStorage('driver_receipts') || {};
                     delete receipts[id];
-                    saveToLocalStorage('receipts', receipts);
+                    saveToLocalStorage('driver_receipts', receipts);
                     displayReceipts(receipts);
+                    alert('تم حذف الإيصال بنجاح');
                 }).catch((error) => {
                     console.error('خطأ في حذف الإيصال:', error);
+                    alert('خطأ في حذف الإيصال: ' + error.message);
                 }).finally(() => {
                     document.getElementById('loadingIndicator').style.display = 'none';
                 });
@@ -874,10 +899,11 @@
                     });
                     saveToLocalStorage('missions', missions);
                     displayMissions(missions);
+                    alert('تم تحديث المأموريات بنجاح');
                 })
                 .catch((error) => {
                     console.error('خطأ في تحديث الحالة الجماعية للمأموريات:', error);
-                    alert('حدث خطأ أثناء تحديث المأموريات');
+                    alert('حدث خطأ أثناء تحديث المأموريات: ' + error.message);
                 })
                 .finally(() => {
                     document.getElementById('loadingIndicator').style.display = 'none';
@@ -899,24 +925,25 @@
 
             const updates = {};
             selectedReceipts.forEach(id => {
-                updates[`receipts/${id}/status`] = newStatus;
+                updates[`driver_receipts/${id}/status`] = newStatus;
             });
 
             update(ref(database), updates)
                 .then(() => {
                     console.log(`تم تحديث حالة ${selectedReceipts.length} إيصال إلى ${newStatus}`);
-                    const receipts = getFromLocalStorage('receipts') || {};
+                    const receipts = getFromLocalStorage('driver_receipts') || {};
                     selectedReceipts.forEach(id => {
                         if (receipts[id]) {
                             receipts[id].status = newStatus;
                         }
                     });
-                    saveToLocalStorage('receipts', receipts);
+                    saveToLocalStorage('driver_receipts', receipts);
                     displayReceipts(receipts);
+                    alert('تم تحديث الإيصالات بنجاح');
                 })
                 .catch((error) => {
                     console.error('خطأ في تحديث الحالة الجماعية للإيصالات:', error);
-                    alert('حدث خطأ أثناء تحديث الإيصالات');
+                    alert('حدث خطأ أثناء تحديث الإيصالات: ' + error.message);
                 })
                 .finally(() => {
                     document.getElementById('loadingIndicator').style.display = 'none';
@@ -930,6 +957,7 @@
             return Array.from(checkboxes).map(checkbox => checkbox.value).filter(id => id);
         }
 
+        // جلب البيانات عند تحميل الصفحة
         fetchAndDisplayMissions();
         fetchAndDisplayReceipts();
     </script>
