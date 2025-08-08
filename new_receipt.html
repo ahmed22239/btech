@@ -40,10 +40,18 @@
         .hidden {
             display: none;
         }
+        #message.error {
+            color: red;
+        }
+        #message.success {
+            color: green;
+        }
     </style>
 </head>
 <body>
     <div class="container">
+        <!-- زر العودة إلى الصفحة الرئيسية -->
+        <a href="index.html" style="display: inline-block; margin-bottom: 20px; text-decoration: none; color: #4CAF50;">العودة إلى الصفحة الرئيسية</a>
         <h2>تسجيل إيصال جديد</h2>
         <form id="receiptForm">
             <input type="date" id="receiptDateInput" required>
@@ -100,16 +108,27 @@
         const auth = getAuth(app);
 
         let currentUserEmail = '';
+        const messageDiv = document.getElementById('message');
 
+        // التحقق من حالة تسجيل الدخول
         onAuthStateChanged(auth, (user) => {
+            console.log('onAuthStateChanged triggered');
             if (user) {
                 currentUserEmail = user.email;
                 console.log('المستخدم الحالي:', currentUserEmail);
                 loadDriversAndDelegates();
             } else {
-                console.log('لم يتم تسجيل دخول المستخدم، إعادة توجيه إلى صفحة تسجيل الدخول');
-                window.location.href = 'login.html';
+                console.error('لم يتم تسجيل دخول المستخدم');
+                messageDiv.textContent = 'يرجى تسجيل الدخول أولاً.';
+                messageDiv.classList.add('error');
+                setTimeout(() => {
+                    window.location.href = 'login.html';
+                }, 2000);
             }
+        }, (error) => {
+            console.error('خطأ في التحقق من حالة تسجيل الدخول:', error);
+            messageDiv.textContent = 'خطأ في التحقق من حالة تسجيل الدخول: ' + error.message;
+            messageDiv.classList.add('error');
         });
 
         const receiptForm = document.getElementById('receiptForm');
@@ -120,35 +139,29 @@
         const orderNumberInput = document.getElementById('orderNumberInput');
         const delayTimeInput = document.getElementById('delayTimeInput');
 
+        // التحكم في إظهار/إخفاء الحقول بناءً على نوع الإيصال
         receiptTypeInput.addEventListener('change', function() {
+            console.log('نوع الإيصال المحدد:', this.value);
+            governorateInput.classList.add('hidden');
+            productInput.classList.add('hidden');
+            floorNumberInput.classList.add('hidden');
+            orderNumberInput.classList.add('hidden');
+            delayTimeInput.classList.add('hidden');
+
             if (this.value === 'بدل مبيت') {
                 governorateInput.classList.remove('hidden');
-                productInput.classList.add('hidden');
-                floorNumberInput.classList.add('hidden');
-                orderNumberInput.classList.add('hidden');
-                delayTimeInput.classList.add('hidden');
             } else if (this.value === 'الصعود لدور عالي') {
-                governorateInput.classList.add('hidden');
                 productInput.classList.remove('hidden');
                 floorNumberInput.classList.remove('hidden');
                 orderNumberInput.classList.remove('hidden');
-                delayTimeInput.classList.add('hidden');
             } else if (this.value === 'بدل تأخير') {
-                governorateInput.classList.add('hidden');
-                productInput.classList.add('hidden');
-                floorNumberInput.classList.add('hidden');
-                orderNumberInput.classList.add('hidden');
                 delayTimeInput.classList.remove('hidden');
-            } else {
-                governorateInput.classList.add('hidden');
-                productInput.classList.add('hidden');
-                floorNumberInput.classList.add('hidden');
-                orderNumberInput.classList.add('hidden');
-                delayTimeInput.classList.add('hidden');
             }
         });
 
+        // تحميل أسماء السائقين والمندوبين
         function loadDriversAndDelegates() {
+            console.log('جلب أسماء السائقين والمندوبين...');
             const driversRef = ref(database, 'drivers');
             const delegatesRef = ref(database, 'delegates');
 
@@ -166,9 +179,13 @@
                     console.log('تم تحميل السائقين:', snapshot.val());
                 } else {
                     console.log('لا يوجد سائقين في قاعدة البيانات');
+                    messageDiv.textContent = 'لا يوجد سائقين متاحين. يرجى التواصل مع المدير.';
+                    messageDiv.classList.add('error');
                 }
             }, (error) => {
                 console.error('خطأ في تحميل السائقين:', error);
+                messageDiv.textContent = 'خطأ في تحميل السائقين: ' + error.message;
+                messageDiv.classList.add('error');
             });
 
             onValue(delegatesRef, (snapshot) => {
@@ -185,16 +202,37 @@
                     console.log('تم تحميل المندوبين:', snapshot.val());
                 } else {
                     console.log('لا يوجد مندوبين في قاعدة البيانات');
+                    messageDiv.textContent = 'لا يوجد مندوبين متاحين. يرجى التواصل مع المدير.';
+                    messageDiv.classList.add('error');
                 }
             }, (error) => {
                 console.error('خطأ في تحميل المندوبين:', error);
+                messageDiv.textContent = 'خطأ في تحميل المندوبين: ' + error.message;
+                messageDiv.classList.add('error');
             });
         }
 
+        // التعامل مع إرسال النموذج
         receiptForm.addEventListener('submit', async function(e) {
             e.preventDefault();
-            
+            console.log('بدء تسجيل إيصال جديد...');
+
+            // التحقق من صحة البيانات
+            const receiptDate = document.getElementById('receiptDateInput').value;
+            const driver = document.getElementById('driverInput').value;
+            const delegate = document.getElementById('delegateInput').value;
+            const receiptType = receiptTypeInput.value;
+            const carNumber = document.getElementById('carNumberInput').value;
+
+            if (!receiptDate || !driver || !delegate || !receiptType || !carNumber) {
+                console.error('حقول مطلوبة مفقودة');
+                messageDiv.textContent = 'يرجى ملء جميع الحقول المطلوبة.';
+                messageDiv.classList.add('error');
+                return;
+            }
+
             if (!confirm('هل أنت متأكد من صحة البيانات المدخلة؟')) {
+                console.log('تم إلغاء التسجيل بواسطة المستخدم');
                 return;
             }
 
@@ -205,36 +243,39 @@
             const receiptId = uuidv4();
             const receiptData = {
                 id: receiptId,
-                date: document.getElementById('receiptDateInput').value,
-                driver: document.getElementById('driverInput').value,
-                delegate: document.getElementById('delegateInput').value,
-                receiptType: receiptTypeInput.value,
-                carNumber: document.getElementById('carNumberInput').value,
+                date: receiptDate,
+                driver: driver,
+                delegate: delegate,
+                receiptType: receiptType,
+                carNumber: carNumber,
                 userEmail: currentUserEmail,
-                createdAt: Date.now() // إضافة وقت التسجيل
+                status: 'جاري المراجعة', // الحالة الافتراضية
+                createdAt: new Date().toISOString() // استخدام ISO لتخزين التاريخ بشكل موحد
             };
 
-            if (receiptTypeInput.value === 'بدل مبيت') {
-                receiptData.governorate = governorateInput.value;
-            }
-
-            if (receiptTypeInput.value === 'الصعود لدور عالي') {
-                receiptData.product = productInput.value;
-                receiptData.floorNumber = floorNumberInput.value;
-                receiptData.orderNumber = orderNumberInput.value;
-            }
-
-            if (receiptTypeInput.value === 'بدل تأخير') {
-                receiptData.delayTime = delayTimeInput.value;
+            // إضافة الحقول الإضافية بناءً على نوع الإيصال
+            if (receiptType === 'بدل مبيت') {
+                receiptData.governorate = governorateInput.value || '';
+            } else if (receiptType === 'الصعود لدور عالي') {
+                receiptData.product = productInput.value || '';
+                receiptData.floorNumber = floorNumberInput.value || '';
+                receiptData.orderNumber = orderNumberInput.value || '';
+            } else if (receiptType === 'بدل تأخير') {
+                receiptData.delayTime = delayTimeInput.value || '';
             }
 
             console.log('بيانات الإيصال للتسجيل:', receiptData);
 
             try {
-                const newReceiptRef = ref(database, `receipts/${receiptId}`);
+                // تسجيل الإيصال في /driver_receipts
+                const newReceiptRef = ref(database, `driver_receipts/${receiptId}`);
                 await set(newReceiptRef, receiptData);
-                document.getElementById('message').textContent = 'تم تسجيل الإيصال بنجاح!';
                 console.log('تم تسجيل الإيصال بنجاح في Firebase:', receiptData);
+                messageDiv.textContent = 'تم تسجيل الإيصال بنجاح!';
+                messageDiv.classList.remove('error');
+                messageDiv.classList.add('success');
+
+                // إعادة تعيين النموذج وإخفاء الحقول الديناميكية
                 receiptForm.reset();
                 governorateInput.classList.add('hidden');
                 productInput.classList.add('hidden');
@@ -242,15 +283,19 @@
                 orderNumberInput.classList.add('hidden');
                 delayTimeInput.classList.add('hidden');
             } catch (error) {
-                document.getElementById('message').textContent = 'حدث خطأ: ' + error.message;
                 console.error('خطأ في تسجيل الإيصال:', error);
+                messageDiv.textContent = 'حدث خطأ أثناء تسجيل الإيصال: ' + error.message;
+                messageDiv.classList.add('error');
+                messageDiv.classList.remove('success');
             } finally {
                 submitButton.disabled = false;
                 submitButton.textContent = 'تسجيل';
             }
         });
 
+        // تحميل السائقين والمندوبين عند تحميل الصفحة
         document.addEventListener('DOMContentLoaded', function() {
+            console.log('تحميل الصفحة: بدء تحميل السائقين والمندوبين');
             loadDriversAndDelegates();
         });
     </script>
