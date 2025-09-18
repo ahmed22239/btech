@@ -1,0 +1,668 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>تفاصيل المبالغ المصروفة</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: Arial, sans-serif; background: #f8f9fa; padding: 18px; }
+    .container { max-width: 1400px; margin: 0 auto; }
+    h1 { text-align: center; margin-bottom: 14px; }
+    .table-responsive { max-height: 520px; overflow-y: auto; position: relative; margin-top: 12px; }
+    .table-responsive thead th { position: sticky; top: 0; background: #f8f9fa; z-index: 3; border-bottom: 2px solid #dee2e6; }
+    th, td { text-align: center; vertical-align: middle; }
+    .total-row { font-weight: 700; background: #e9ecef; }
+    .controls { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+    .controls .left { display: flex; gap: 8px; align-items: center; }
+    @media (max-width: 720px) { .controls { flex-direction: column; align-items: stretch; } }
+    #message { margin-top: 8px; min-height: 24px; font-size: 1.1em; font-weight: bold; color: #333; }
+    .error { color: #c82333; }
+    .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1000; }
+    .modal-content { background: #fff; margin: 15% auto; padding: 20px; max-width: 500px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>تفاصيل المبالغ المصروفة</h1>
+    <a href="index.html" class="btn btn-secondary mb-3">العودة إلى الصفحة الرئيسية</a>
+    <button id="logoutBtn" class="btn btn-danger mb-3">تسجيل الخروج</button>
+
+    <!-- شاشة منبثقة لإدخال الكود -->
+    <div id="codeModal" class="modal">
+      <div class="modal-content">
+        <h3>إدخال كود الموظف</h3>
+        <div class="form-group mb-3">
+          <label for="employeeCodeInput">ادخل كود البحث</label>
+          <input type="text" id="employeeCodeInput" class="form-control" placeholder="مثال: EMP123" />
+        </div>
+        <button id="submitCodeBtn" class="btn btn-primary w-100">تأكيد</button>
+        <div id="modalMessage" class="mt-2"></div>
+      </div>
+    </div>
+
+    <!-- قسم التحميل (للـ admin فقط) -->
+    <div id="uploadSection" class="mb-3" style="display: none;">
+      <label class="form-label">تحميل ملف Excel (شيت "1" = المأموريات، "2" = الإيصالات، "3" = الموظفين)</label>
+      <input type="file" id="excelFile" accept=".xlsx,.xls" class="form-control mb-2" />
+      <div class="form-check mb-2">
+        <input type="checkbox" id="clearDataCheckbox" class="form-check-input" />
+        <label for="clearDataCheckbox" class="form-check-label">حذف بيانات قديمة قبل الرفع</label>
+      </div>
+      <button id="deleteDataBtn" class="btn btn-danger mb-2">حذف بيانات المأموريات والإيصالات القديمة</button>
+    </div>
+
+    <div id="message"></div>
+
+    <!-- تبويبات العرض -->
+    <div class="mb-2">
+      <button id="showExpensesBtn" class="btn btn-primary">عرض المأموريات</button>
+      <button id="showReceiptsBtn" class="btn btn-secondary">عرض الإيصالات</button>
+    </div>
+
+    <!-- أدوات التصفية (للـ admin فقط) -->
+    <div class="controls" id="controls" style="display: none;">
+      <div class="left">
+        <label class="me-1">بحث بـ</label>
+        <select id="filterBy" class="form-select" style="width: 140px;">
+          <option value="name">الاسم</option>
+          <option value="code">الكود</option>
+        </select>
+        <input id="searchInput" class="form-control" style="width: 320px;" placeholder="ابحث بالاسم أو الكود...">
+        <button id="clearFilterBtn" class="btn btn-outline-secondary">مسح الفلتر</button>
+      </div>
+      <div style="margin-left: auto;">
+        <button id="exportBtn" class="btn btn-success">تصدير المعروض</button>
+      </div>
+    </div>
+
+    <!-- قسم البيانات -->
+    <div id="dataSection">
+      <!-- جدول المأموريات -->
+      <div class="table-responsive" id="expensesTable">
+        <table class="table table-bordered table-striped">
+          <thead>
+            <tr>
+              <th>التاريخ</th>
+              <th>رقم السيارة</th>
+              <th>كود السائق</th>
+              <th>إسم السائق</th>
+              <th>كود المندوب</th>
+              <th>إسم المندوب</th>
+              <th>اتجاه بداية الرحلة</th>
+              <th>اتجاه الرحلة الأساسية</th>
+              <th>رحلة إضافية 2</th>
+              <th>القيمة للسائق</th>
+              <th>القيمة للمندوب</th>
+              <th>بدل إضافي 1 للسائق</th>
+              <th>بدل إضافي 2 للسائق</th>
+              <th>بدل إضافي 1 للمندوب</th>
+              <th>بدل إضافي 2 للمندوب</th>
+              <th>قيمة الوجبة</th>
+              <th>عدد الرحلة الفعلي</th>
+              <th>بريد المستخدم</th>
+            </tr>
+          </thead>
+          <tbody id="expensesTableBody"></tbody>
+          <tfoot id="expensesTotalRow"></tfoot>
+        </table>
+      </div>
+
+      <!-- جدول الإيصالات -->
+      <div class="table-responsive" id="receiptsTable" style="display: none;">
+        <table class="table table-bordered table-striped">
+          <thead>
+            <tr>
+              <th>التاريخ</th>
+              <th>الكود</th>
+              <th>الاسم</th>
+              <th>مندوب / سائق</th>
+              <th>بيان</th>
+              <th>رقم السيارة</th>
+              <th>المبلغ</th>
+              <th>بند الصرف</th>
+              <th>المخزن</th>
+              <th>بريد المستخدم</th>
+            </tr>
+          </thead>
+          <tbody id="receiptsTableBody"></tbody>
+          <tfoot id="receiptsTotalRow"></tfoot>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getDatabase, ref, push, get, remove } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAf9OuANGnp9WNDad6n7ky7K7v9mtNsEzI",
+      authDomain: "ahmed-15d52.firebaseapp.com",
+      databaseURL: "https://ahmed-15d52-default-rtdb.firebaseio.com",
+      projectId: "ahmed-15d52",
+      storageBucket: "ahmed-15d52.appspot.com",
+      messagingSenderId: "103191449244",
+      appId: "1:103191449244:web:c33ae04fd0473010da2759",
+      measurementId: "G-WF6LYR9F3D"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+    const auth = getAuth(app);
+
+    let expensesData = [];
+    let receiptsData = [];
+    let filteredExpenses = [];
+    let filteredReceipts = [];
+    const adminEmail = 'ahmed29944@btech.com';
+    let isAdmin = false;
+    let currentTab = 'expenses';
+    let currentFilterValue = '';
+    let currentFilterType = 'name';
+    let employeeName = '';
+
+    function showMessage(elementId, text, isError = false) {
+      const m = document.getElementById(elementId);
+      if (m) {
+        m.textContent = text || '';
+        m.className = isError ? 'error' : '';
+        m.style.display = text ? 'block' : 'none'; // Ensure visibility
+      }
+      console.log(`showMessage called: elementId=${elementId}, text=${text}, isError=${isError}`);
+    }
+
+    function convertExcelDate(excelDate) {
+      if (!excelDate) return '';
+      if (typeof excelDate === 'string' && /^\d{4}-\d{2}-\d{2}/.test(excelDate)) return excelDate.split('T')[0];
+      if (typeof excelDate === 'number') {
+        const dt = new Date((excelDate - 25569) * 86400 * 1000);
+        if (!isNaN(dt.getTime())) return dt.toISOString().split('T')[0];
+      }
+      try { const d = new Date(excelDate); if (!isNaN(d.getTime())) return d.toISOString().split('T')[0]; } catch(e) {}
+      return excelDate || '';
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      onAuthStateChanged(auth, (user) => {
+        if (user) {
+          isAdmin = user.email === adminEmail;
+          sessionStorage.setItem('isAdmin', isAdmin.toString());
+          employeeName = sessionStorage.getItem('employeeName') || (isAdmin ? 'مدير' : '');
+          currentFilterValue = sessionStorage.getItem('employeeName') || '';
+
+          console.log(`User authenticated: email=${user.email}, isAdmin=${isAdmin}, employeeName=${employeeName}`);
+
+          document.getElementById('controls').style.display = isAdmin ? 'flex' : 'none';
+          document.getElementById('uploadSection').style.display = isAdmin ? 'block' : 'none';
+          document.getElementsByClassName('btn-secondary')[0].style.display = isAdmin ? 'inline-block' : 'none';
+
+          if (isAdmin) {
+            showMessage('message', `مرحبًا، ${employeeName}`);
+            loadExpenses();
+            loadReceipts();
+          } else {
+            document.getElementById('codeModal').style.display = 'block';
+          }
+        } else {
+          console.log('No user authenticated, redirecting to login.html');
+          window.location.href = 'login.html';
+        }
+      });
+
+      document.getElementById('submitCodeBtn')?.addEventListener('click', () => {
+        const code = document.getElementById('employeeCodeInput').value.trim();
+        if (!code) {
+          showMessage('modalMessage', 'يرجى إدخال كود البحث', true);
+          return;
+        }
+
+        const employeesRef = ref(database, 'employees');
+        get(employeesRef).then(snapshot => {
+          if (snapshot.exists()) {
+            let found = false;
+            snapshot.forEach(child => {
+              const emp = child.val();
+              if (emp.code === code) {
+                found = true;
+                employeeName = emp.name || '';
+                sessionStorage.setItem('employeeName', employeeName);
+                sessionStorage.setItem('employeeCode', code);
+                sessionStorage.setItem('isAdmin', 'false');
+                console.log(`Employee found: name=${employeeName}, code=${code}`);
+              }
+            });
+
+            if (found) {
+              document.getElementById('codeModal').style.display = 'none';
+              showMessage('message', `مرحبًا، ${employeeName}`);
+              currentFilterValue = employeeName;
+              loadExpenses();
+              loadReceipts();
+            } else {
+              showMessage('modalMessage', 'كود البحث غير صحيح', true);
+              console.log(`Invalid code entered: ${code}`);
+            }
+          } else {
+            showMessage('modalMessage', 'لا توجد بيانات موظفين', true);
+            console.log('No employees data found in Firebase');
+          }
+        }).catch(err => {
+          console.error('خطأ التحقق:', err);
+          showMessage('modalMessage', 'خطأ في التحقق: ' + err.message, true);
+        });
+      });
+
+      setupLogout('logoutBtn');
+    });
+
+    function setupLogout(logoutBtnId) {
+      const logoutBtn = document.getElementById(logoutBtnId);
+      if (logoutBtn) {
+        logoutBtn.addEventListener('click', () => {
+          sessionStorage.clear();
+          signOut(auth).then(() => {
+            console.log('User signed out, redirecting to login.html');
+            window.location.href = 'login.html';
+          }).catch(err => {
+            console.error('خطأ تسجيل الخروج:', err);
+            showMessage('message', 'خطأ في تسجيل الخروج', true);
+          });
+        });
+      }
+    }
+
+    function uploadEmployees(jsonData) {
+      if (!Array.isArray(jsonData) || jsonData.length === 0) {
+        showMessage('message', 'لا توجد بيانات موظفين للرفع', true);
+        return;
+      }
+      const employeesRef = ref(database, 'employees');
+      jsonData.forEach(row => {
+        const formatted = {
+          name: row['اسم الموظف'] || '',
+          code: (row['كود البحث'] || '') + '',
+          uploadedBy: sessionStorage.getItem('employeeName') || '',
+          uploadedAt: Date.now()
+        };
+        push(employeesRef, formatted).catch(err => console.error('خطأ رفع موظف:', err));
+      });
+      showMessage('message', 'تم رفع بيانات الموظفين.');
+    }
+
+    document.getElementById('excelFile')?.addEventListener('change', function(e) {
+      if (!isAdmin) { showMessage('message', 'غير مصرح لك برفع البيانات', true); return; }
+      const file = e.target.files[0]; if (!file) return;
+      const clearData = document.getElementById('clearDataCheckbox').checked;
+      const reader = new FileReader();
+      reader.onload = function(ev) {
+        try {
+          const data = new Uint8Array(ev.target.result);
+          const workbook = XLSX.read(data, { type: 'array', cellDates: true, dateNF: 'yyyy-mm-dd' });
+          const sheetNames = workbook.SheetNames;
+          const expensesJson = XLSX.utils.sheet_to_json(workbook.Sheets[sheetNames.includes('1') ? '1' : sheetNames[0]], { raw: false });
+          const receiptsJson = XLSX.utils.sheet_to_json(workbook.Sheets[sheetNames.includes('2') ? '2' : sheetNames[1] || sheetNames[0]], { raw: false });
+          const employeesJson = sheetNames.includes('3') ? XLSX.utils.sheet_to_json(workbook.Sheets['3'], { raw: false }) : [];
+
+          const proceedUpload = () => {
+            uploadData(expensesJson, 'expenses');
+            uploadData(receiptsJson, 'receipts');
+            if (employeesJson.length) uploadEmployees(employeesJson);
+          };
+
+          if (clearData) {
+            Promise.all([
+              remove(ref(database, 'expenses')),
+              remove(ref(database, 'receipts')),
+              employeesJson.length ? remove(ref(database, 'employees')) : Promise.resolve()
+            ])
+              .then(() => proceedUpload())
+              .catch(err => {
+                console.error('خطأ حذف القديم:', err);
+                showMessage('message', 'خطأ في حذف البيانات القديمة: ' + err.message, true);
+              });
+          } else {
+            proceedUpload();
+          }
+        } catch(err) {
+          console.error('خطأ قراءة اكسل', err);
+          showMessage('message', 'خطأ في قراءة ملف Excel: ' + (err.message || err), true);
+        }
+      };
+      reader.readAsArrayBuffer(file);
+    });
+
+    function uploadData(jsonData, type) {
+      if (!Array.isArray(jsonData) || jsonData.length === 0) {
+        showMessage('message', `لا توجد بيانات للشيت ${type}`, true);
+        return;
+      }
+      const dataRef = ref(database, type);
+      jsonData.forEach(row => {
+        const formatted = {};
+        if (type === 'expenses') {
+          formatted.date = convertExcelDate(row['التاريخ'] || row['Date'] || '');
+          formatted.carNumber = (row['رقم السيارة'] || '') + '';
+          formatted.driverCode = (row['كود السائق'] || '') + '';
+          formatted.driverName = (row['إسم السائق'] || '') || '';
+          formatted.delegateCode = (row['كود المندوب'] || '') + '';
+          formatted.delegateName = (row['إسم المندوب'] || '') || '';
+          formatted.tripStartDirection = row['اتجاه بداية الرحلة'] || '';
+          formatted.mainTripDirection = row['اتجاه الرحلة الأساسية'] || '';
+          formatted.extraTrip2 = row['رحلة إضافية 2'] || '';
+          formatted.driverValue = parseFloat(row['القيمة للسائق'] || 0) || 0;
+          formatted.delegateValue = parseFloat(row['القيمة للمندوب'] || 0) || 0;
+          formatted.driverExtra1 = parseFloat(row['بدل إضافي 1 للسائق'] || 0) || 0;
+          formatted.driverExtra2 = parseFloat(row['بدل إضافي 2 للسائق'] || 0) || 0;
+          formatted.delegateExtra1 = parseFloat(row['بدل إضافي 1 للمندوب'] || 0) || 0;
+          formatted.delegateExtra2 = parseFloat(row['بدل إضافي 2 للمندوب'] || 0) || 0;
+          formatted.mealValue = parseFloat(row['قيمة الوجبة'] || 0) || 0;
+          formatted.actualTripCount = row['عدد الرحلة الفعلي'] || '';
+          formatted.userEmail = (row['بريد المستخدم'] || '') + '';
+        } else {
+          formatted.date = convertExcelDate(row['التاريخ'] || row['Date'] || '');
+          formatted.code = (row['الكود'] || '') + '';
+          formatted.name = (row['الاسم'] || '') || '';
+          formatted.role = row['مندوب / سائق'] || '';
+          formatted.description = row['بيان'] || '';
+          formatted.carNumber = (row['رقم السيارة'] || '') + '';
+          formatted.amount = parseFloat(row['المبلغ'] || 0) || 0;
+          formatted.expenseType = row['بند الصرف'] || '';
+          formatted.warehouse = row['المخزن'] || '';
+          formatted.userEmail = (row['بريد المستخدم'] || '') + '';
+        }
+        formatted.uploadedBy = sessionStorage.getItem('employeeName') || '';
+        formatted.uploadedAt = Date.now();
+        push(dataRef, formatted).catch(err => console.error('خطأ رفع صف:', err));
+      });
+      showMessage('message', `تم إرسال بيانات ${type === 'expenses' ? 'المأموريات' : 'الإيصالات'}.`);
+      setTimeout(() => { if (type === 'expenses') loadExpenses(); else loadReceipts(); }, 1200);
+    }
+
+    function loadExpenses() {
+      const expensesRef = ref(database, 'expenses');
+      get(expensesRef).then(snapshot => {
+        expensesData = [];
+        if (snapshot.exists()) {
+          snapshot.forEach(child => {
+            const r = child.val();
+            if (isAdmin || r.driverName === employeeName || r.delegateName === employeeName) {
+              expensesData.push(r);
+            }
+          });
+        }
+        filteredExpenses = expensesData.slice();
+        if (currentTab === 'expenses') displayExpenses(filteredExpenses);
+      }).catch(err => {
+        console.error('خطأ تحميل المأموريات:', err);
+        showMessage('message', 'خطأ في تحميل المأموريات', true);
+      });
+    }
+
+    function loadReceipts() {
+      const receiptsRef = ref(database, 'receipts');
+      get(receiptsRef).then(snapshot => {
+        receiptsData = [];
+        if (snapshot.exists()) {
+          snapshot.forEach(child => {
+            const r = child.val();
+            if (isAdmin || r.name === employeeName) {
+              receiptsData.push(r);
+            }
+          });
+        }
+        filteredReceipts = receiptsData.slice();
+        if (currentTab === 'receipts') displayReceipts(filteredReceipts);
+      }).catch(err => {
+        console.error('خطأ تحميل الإيصالات:', err);
+        showMessage('message', 'خطأ في تحميل الإيصالات', true);
+      });
+    }
+
+    function displayExpenses(data) {
+      filteredExpenses = Array.isArray(data) ? data.slice() : [];
+      const body = document.getElementById('expensesTableBody');
+      const total = document.getElementById('expensesTotalRow');
+      body.innerHTML = ''; total.innerHTML = '';
+      if (!data || data.length === 0) {
+        body.innerHTML = '<tr><td colspan="18">لا توجد مأموريات لعرضها</td></tr>';
+        return;
+      }
+
+      let sums = { driverValue: 0, delegateValue: 0, driverExtra1: 0, driverExtra2: 0, delegateExtra1: 0, delegateExtra2: 0, mealValue: 0 };
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.date || ''}</td>
+          <td>${row.carNumber || ''}</td>
+          <td>${row.driverCode || ''}</td>
+          <td>${row.driverName || ''}</td>
+          <td>${row.delegateCode || ''}</td>
+          <td>${row.delegateName || ''}</td>
+          <td>${row.tripStartDirection || ''}</td>
+          <td>${row.mainTripDirection || ''}</td>
+          <td>${row.extraTrip2 || ''}</td>
+          <td>${Number(row.driverValue || 0)}</td>
+          <td>${Number(row.delegateValue || 0)}</td>
+          <td>${Number(row.driverExtra1 || 0)}</td>
+          <td>${Number(row.driverExtra2 || 0)}</td>
+          <td>${Number(row.delegateExtra1 || 0)}</td>
+          <td>${Number(row.delegateExtra2 || 0)}</td>
+          <td>${Number(row.mealValue || 0)}</td>
+          <td>${row.actualTripCount || ''}</td>
+          <td>${row.userEmail || ''}</td>
+        `;
+        body.appendChild(tr);
+        sums.driverValue += Number(row.driverValue || 0);
+        sums.delegateValue += Number(row.delegateValue || 0);
+        sums.driverExtra1 += Number(row.driverExtra1 || 0);
+        sums.driverExtra2 += Number(row.driverExtra2 || 0);
+        sums.delegateExtra1 += Number(row.delegateExtra1 || 0);
+        sums.delegateExtra2 += Number(row.delegateExtra2 || 0);
+        sums.mealValue += Number(row.mealValue || 0);
+      });
+
+      total.innerHTML = `
+        <tr class="total-row">
+          <td colspan="9">الإجمالي</td>
+          <td>${sums.driverValue.toFixed(2)}</td>
+          <td>${sums.delegateValue.toFixed(2)}</td>
+          <td>${sums.driverExtra1.toFixed(2)}</td>
+          <td>${sums.driverExtra2.toFixed(2)}</td>
+          <td>${sums.delegateExtra1.toFixed(2)}</td>
+          <td>${sums.delegateExtra2.toFixed(2)}</td>
+          <td>${sums.mealValue.toFixed(2)}</td>
+          <td colspan="2"></td>
+        </tr>
+      `;
+    }
+
+    function displayReceipts(data) {
+      filteredReceipts = Array.isArray(data) ? data.slice() : [];
+      const body = document.getElementById('receiptsTableBody');
+      const total = document.getElementById('receiptsTotalRow');
+      body.innerHTML = ''; total.innerHTML = '';
+      if (!data || data.length === 0) {
+        body.innerHTML = '<tr><td colspan="10">لا توجد إيصالات لعرضها</td></tr>';
+        return;
+      }
+      let totalAmount = 0;
+      data.forEach(row => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${row.date || ''}</td>
+          <td>${row.code || ''}</td>
+          <td>${row.name || ''}</td>
+          <td>${row.role || ''}</td>
+          <td>${row.description || ''}</td>
+          <td>${row.carNumber || ''}</td>
+          <td>${Number(row.amount || 0)}</td>
+          <td>${row.expenseType || ''}</td>
+          <td>${row.warehouse || ''}</td>
+          <td>${row.userEmail || ''}</td>
+        `;
+        body.appendChild(tr);
+        totalAmount += Number(row.amount || 0);
+      });
+      total.innerHTML = `
+        <tr class="total-row">
+          <td colspan="6">الإجمالي</td>
+          <td>${totalAmount.toFixed(2)}</td>
+          <td colspan="3"></td>
+        </tr>
+      `;
+    }
+
+    document.getElementById('showExpensesBtn').addEventListener('click', () => {
+      currentTab = 'expenses';
+      document.getElementById('expensesTable').style.display = 'block';
+      document.getElementById('receiptsTable').style.display = 'none';
+      displayExpenses(currentFilterValue ? filteredExpenses : expensesData);
+    });
+
+    document.getElementById('showReceiptsBtn').addEventListener('click', () => {
+      currentTab = 'receipts';
+      document.getElementById('expensesTable').style.display = 'none';
+      document.getElementById('receiptsTable').style.display = 'block';
+      displayReceipts(currentFilterValue ? filteredReceipts : receiptsData);
+    });
+
+    document.getElementById('filterBy')?.addEventListener('change', (e) => {
+      currentFilterType = e.target.value;
+    });
+
+    document.getElementById('searchInput')?.addEventListener('input', () => {
+      if (!isAdmin) return;
+      const raw = document.getElementById('searchInput').value.trim();
+      currentFilterValue = raw;
+      const term = raw.toLowerCase();
+      if (!term) {
+        filteredExpenses = expensesData.slice();
+        filteredReceipts = receiptsData.slice();
+        displayExpenses(filteredExpenses);
+        displayReceipts(filteredReceipts);
+        return;
+      }
+
+      if (currentFilterType === 'name') {
+        filteredExpenses = expensesData.filter(r =>
+          (r.driverName && r.driverName.toLowerCase().includes(term)) ||
+          (r.delegateName && r.delegateName.toLowerCase().includes(term))
+        );
+        filteredReceipts = receiptsData.filter(r =>
+          (r.name && r.name.toLowerCase().includes(term))
+        );
+      } else {
+        filteredExpenses = expensesData.filter(r =>
+          (r.driverCode && r.driverCode.toString().toLowerCase().includes(term)) ||
+          (r.delegateCode && r.delegateCode.toString().toLowerCase().includes(term))
+        );
+        filteredReceipts = receiptsData.filter(r =>
+          (r.code && r.code.toString().toLowerCase().includes(term))
+        );
+      }
+
+      if (currentTab === 'expenses') displayExpenses(filteredExpenses);
+      else displayReceipts(filteredReceipts);
+    });
+
+    document.getElementById('clearFilterBtn')?.addEventListener('click', () => {
+      currentFilterValue = sessionStorage.getItem('employeeName') || '';
+      document.getElementById('searchInput').value = '';
+      filteredExpenses = expensesData.slice();
+      filteredReceipts = receiptsData.slice();
+      displayExpenses(filteredExpenses);
+      displayReceipts(filteredReceipts);
+    });
+
+    document.getElementById('deleteDataBtn')?.addEventListener('click', () => {
+      if (!isAdmin) { showMessage('message', 'غير مصرح لك بحذف البيانات', true); return; }
+      if (!confirm('هل أنت متأكد من حذف كل بيانات المأموريات والإيصالات؟')) return;
+      Promise.all([remove(ref(database, 'expenses')), remove(ref(database, 'receipts'))])
+        .then(() => {
+          expensesData = []; receiptsData = []; filteredExpenses = []; filteredReceipts = [];
+          displayExpenses([]); displayReceipts([]);
+          showMessage('message', 'تم حذف البيانات');
+        })
+        .catch(err => {
+          console.error('خطأ حذف:', err);
+          showMessage('message', 'خطأ في الحذف: ' + (err.message || err), true);
+        });
+    });
+
+    document.getElementById('exportBtn')?.addEventListener('click', () => {
+      try {
+        const expToExport = (currentFilterValue && filteredExpenses.length) ? filteredExpenses : expensesData;
+        const recToExport = (currentFilterValue && filteredReceipts.length) ? filteredReceipts : receiptsData;
+
+        const expHeader = [
+          'التاريخ', 'رقم السيارة', 'كود السائق', 'إسم السائق', 'كود المندوب', 'إسم المندوب',
+          'اتجاه بداية الرحلة', 'اتجاه الرحلة الأساسية', 'رحلة إضافية 2',
+          'القيمة للسائق', 'القيمة للمندوب', 'بدل إضافي 1 للسائق', 'بدل إضافي 2 للسائق',
+          'بدل إضافي 1 للمندوب', 'بدل إضافي 2 للمندوب', 'قيمة الوجبة', 'عدد الرحلة الفعلي', 'بريد المستخدم'
+        ];
+        const expAOA = [expHeader];
+        const sumsExp = { driverValue: 0, delegateValue: 0, driverExtra1: 0, driverExtra2: 0, delegateExtra1: 0, delegateExtra2: 0, mealValue: 0 };
+
+        expToExport.forEach(r => {
+          expAOA.push([
+            r.date || '', r.carNumber || '', r.driverCode || '', r.driverName || '',
+            r.delegateCode || '', r.delegateName || '', r.tripStartDirection || '',
+            r.mainTripDirection || '', r.extraTrip2 || '', Number(r.driverValue || 0),
+            Number(r.delegateValue || 0), Number(r.driverExtra1 || 0), Number(r.driverExtra2 || 0),
+            Number(r.delegateExtra1 || 0), Number(r.delegateExtra2 || 0), Number(r.mealValue || 0),
+            r.actualTripCount || '', r.userEmail || ''
+          ]);
+          sumsExp.driverValue += Number(r.driverValue || 0);
+          sumsExp.delegateValue += Number(r.delegateValue || 0);
+          sumsExp.driverExtra1 += Number(r.driverExtra1 || 0);
+          sumsExp.driverExtra2 += Number(r.driverExtra2 || 0);
+          sumsExp.delegateExtra1 += Number(r.delegateExtra1 || 0);
+          sumsExp.delegateExtra2 += Number(r.delegateExtra2 || 0);
+          sumsExp.mealValue += Number(r.mealValue || 0);
+        });
+
+        expAOA.push([
+          'الإجمالي', '', '', '', '', '', '', '', '',
+          sumsExp.driverValue.toFixed(2), sumsExp.delegateValue.toFixed(2),
+          sumsExp.driverExtra1.toFixed(2), sumsExp.driverExtra2.toFixed(2),
+          sumsExp.delegateExtra1.toFixed(2), sumsExp.delegateExtra2.toFixed(2),
+          sumsExp.mealValue.toFixed(2), '', ''
+        ]);
+
+        const recHeader = ['التاريخ', 'الكود', 'الاسم', 'مندوب / سائق', 'بيان', 'رقم السيارة', 'المبلغ', 'بند الصرف', 'المخزن', 'بريد المستخدم'];
+        const recAOA = [recHeader];
+        let sumsRecAmount = 0;
+        recToExport.forEach(r => {
+          recAOA.push([
+            r.date || '', r.code || '', r.name || '', r.role || '', r.description || '',
+            r.carNumber || '', Number(r.amount || 0), r.expenseType || '', r.warehouse || '', r.userEmail || ''
+          ]);
+          sumsRecAmount += Number(r.amount || 0);
+        });
+        recAOA.push(['الإجمالي', '', '', '', '', '', sumsRecAmount.toFixed(2), '', '', '']);
+
+        const wb = XLSX.utils.book_new();
+        const wsExp = XLSX.utils.aoa_to_sheet(expAOA);
+        const wsRec = XLSX.utils.aoa_to_sheet(recAOA);
+        XLSX.utils.book_append_sheet(wb, wsExp, 'المأموريات_المعروضة');
+        XLSX.utils.book_append_sheet(wb, wsRec, 'الإيصالات_المعروضة');
+
+        const safe = (s) => String(s || '').replace(/[\\\/\:\*\?"<>\|]/g, '_').replace(/\s+/g, '_').slice(0, 80);
+        let fileName = 'تفاصيل_المبالغ_المصروفة';
+        if (currentFilterValue) fileName += `_${currentFilterType === 'name' ? 'اسم' : 'كود'}_${safe(currentFilterValue)}`;
+        else fileName += `_الكل`;
+        const now = new Date(); fileName += `_${now.toISOString().slice(0, 19).replace(/:/g, '-')}.xlsx`;
+
+        XLSX.writeFile(wb, fileName);
+        showMessage('message', 'تم تنزيل ملف الإكسل المحتوي على البيانات المفلترة.');
+      } catch(err) {
+        console.error('خطأ التصدير:', err);
+        showMessage('message', 'خطأ في التصدير: ' + (err.message || err), true);
+      }
+    });
+  </script>
+</body>
+</html>
