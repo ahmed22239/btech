@@ -1,195 +1,345 @@
 <!DOCTYPE html>
-<html lang="ar" dir="rtl">
+<html lang="ar">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>الصفحة الرئيسية</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 20px;
-            background-color: #f0f0f0;
-            display: none;
-        }
-        .container {
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            text-align: center;
-            max-width: 300px;
-            margin: 0 auto;
-        }
-        button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            cursor: pointer;
-            padding: 15px 30px;
-            margin: 10px 0;
-            font-size: 16px;
-            border-radius: 5px;
-            display: block;
-            width: 100%;
-        }
-        button:hover {
-            background-color: #45a049;
-        }
-        #logoutButton {
-            background-color: #f44336;
-        }
-        #logoutButton:hover {
-            background-color: #d32f2f;
-        }
-        /* أنماط النافذة المنبثقة */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0,0,0,0.4);
-        }
-        .modal-content {
-            background-color: #fefefe;
-            margin: 15% auto;
-            padding: 20px;
-            border: 1px solid #888;
-            width: 80%;
-            max-width: 400px;
-            text-align: center;
-            border-radius: 8px;
-        }
-        .close {
-            color: #aaa;
-            float: left;
-            font-size: 28px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        .close:hover,
-        .close:focus {
-            color: black;
-            text-decoration: none;
-            cursor: pointer;
-        }
-    </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>نظام إدارة الماموريات</title>
+  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+  <style>
+    body {
+      font-family: 'Tajawal', Arial, sans-serif;
+      direction: rtl;
+      margin: 0;
+      padding: 0;
+      background: linear-gradient(135deg, #f9f9f9, #eef2f7);
+    }
+
+    .container {
+      max-width: 450px;
+      margin: 20px auto;
+      padding: 15px;
+      background: white;
+      border-radius: 15px;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    }
+
+    .header {
+      background: linear-gradient(90deg, #28a745, #20c997);
+      color: white;
+      text-align: center;
+      padding: 18px;
+      border-radius: 12px;
+      font-size: 20px;
+      font-weight: bold;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 12px;
+      margin: 20px 0;
+    }
+
+    .stat {
+      background: #fff;
+      padding: 15px;
+      border-radius: 12px;
+      text-align: center;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .stat:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    }
+
+    .stat strong {
+      font-size: 24px;
+      color: #333;
+      display: block;
+      margin-bottom: 5px;
+    }
+
+    .stat span {
+      font-size: 14px;
+      color: #666;
+    }
+
+    .stat i {
+      font-size: 28px;
+      margin-bottom: 8px;
+      display: block;
+    }
+
+    .green i { color: #28a745; }
+    .blue i { color: #007bff; }
+    .purple i { color: #6f42c1; }
+    .orange i { color: #fd7e14; }
+    .red i { color: #dc3545; }
+
+    .sections {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .section {
+      background: #fff;
+      padding: 15px;
+      border-radius: 12px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .section:hover {
+      transform: translateX(-5px);
+      box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+    }
+
+    .section a {
+      text-decoration: none;
+      color: #333;
+      font-size: 16px;
+      flex-grow: 1;
+      font-weight: 600;
+    }
+
+    .add-btn {
+      background: linear-gradient(45deg, #28a745, #20c997);
+      color: white;
+      border: none;
+      padding: 8px 12px;
+      border-radius: 50%;
+      font-size: 18px;
+      cursor: pointer;
+      transition: transform 0.2s ease;
+    }
+
+    .add-btn:hover {
+      transform: rotate(90deg);
+    }
+
+    .logout-container {
+      margin-top: 20px;
+      text-align: center;
+    }
+
+    .logout-btn {
+      background: linear-gradient(90deg, #dc3545, #e55353);
+      color: white;
+      border: none;
+      padding: 12px;
+      border-radius: 8px;
+      font-size: 16px;
+      width: 90%;
+      max-width: 300px;
+      font-weight: bold;
+      box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+      transition: background 0.3s ease;
+      display: inline-block;
+      text-align: center;
+      text-decoration: none;
+    }
+
+    .logout-btn:hover {
+      background: linear-gradient(90deg, #c82333, #bd2130);
+    }
+
+    .welcome {
+      text-align: center;
+      color: #20c997;
+      font-size: 16px;
+      margin: 12px 0;
+    }
+
+    .reminder {
+      background: #fff3cd;
+      padding: 12px;
+      border-radius: 8px;
+      margin: 12px 0;
+      text-align: center;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    }
+
+    .reminder button {
+      background: #ffc107;
+      color: #333;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.2s ease;
+    }
+
+    .reminder button:hover {
+      background: #e0a800;
+    }
+
+    .error {
+      color: #dc3545;
+      background: #f8d7da;
+      border-radius: 5px;
+      margin: 10px 0;
+      padding: 10px;
+      text-align: center;
+    }
+  </style>
 </head>
 <body>
-    <div class="container">
-        <h1>الصفحة الرئيسية</h1>
+  <div class="container">
+    <div class="header">نظام إدارة الماموريات</div>
+    <div class="welcome" id="welcomeMsg">مرحباً بك!</div>
 
-        <button id="newMissionButton">تسجيل مأمورية جديدة</button>
-        <button id="newReceiptButton">تسجيل إيصال جديد</button>
-        <button id="viewDataButton">عرض البيانات المسجلة</button>
-        <button id="expensesButton">تفاصيل المبالغ المصروفة</button>
-        <button id="logoutButton">تسجيل الخروج</button>
+    <div class="reminder" id="reminder" style="display: none;">
+      <h4>تذكير</h4>
+      <p>هل صليت على النبي اليوم؟</p>
+      <button id="closeReminderBtn">نعم، صليت</button>
     </div>
 
-    <!-- النافذة المنبثقة -->
-    <div id="reminderModal" class="modal">
-        <div class="modal-content">
-            <span class="close">&times;</span>
-            <h2>تذكير</h2>
-            <p>هل صليت على النبي اليوم؟</p>
-            <button id="closeModal">نعم، صليت</button>
-        </div>
+    <div class="stats">
+      <div class="stat green"><i class="fa-solid fa-tasks"></i><strong id="totalMissions">--</strong><span>إجمالي المأموريات</span></div>
+      <div class="stat blue"><i class="fa-solid fa-hourglass-half"></i><strong id="pendingMissions">--</strong><span>المأموريات المعلقة</span></div>
+      <div class="stat red"><i class="fa-solid fa-times-circle"></i><strong id="rejectedMissions">--</strong><span>المأموريات المرفوضة</span></div>
+      <div class="stat purple"><i class="fa-solid fa-receipt"></i><strong id="totalReceipts">--</strong><span>إجمالي الإيصالات</span></div>
+      <div class="stat orange"><i class="fa-solid fa-clock-rotate-left"></i><strong id="pendingReceipts">--</strong><span>الإيصالات المعلقة</span></div>
+      <div class="stat red"><i class="fa-solid fa-ban"></i><strong id="rejectedReceipts">--</strong><span>الإيصالات المرفوضة</span></div>
     </div>
 
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
+    <div id="sections" class="sections">
+      <div class="section"><button class="add-btn">+</button> <a href="new_mission.html"><i class="fa-solid fa-plus"></i> تسجيل مأمورية جديدة</a></div>
+      <div class="section"><button class="add-btn">+</button> <a href="new_receipt.html"><i class="fa-solid fa-file-invoice-dollar"></i> تسجيل إيصال جديد</a></div>
+      <div class="section"><button class="add-btn">+</button> <a href="view_data.html"><i class="fa-solid fa-database"></i> عرض البيانات المسجلة</a></div>
+      <div class="section"><button class="add-btn">+</button> <a href="employee_expenses.html"><i class="fa-solid fa-money-bill-wave"></i> تفاصيل المبالغ المصروفة</a></div>
+    </div>
 
-        const firebaseConfig = {
-            apiKey: "AIzaSyAf9OuANGnp9WNDad6n7ky7K7v9mtNsEzI",
-            authDomain: "ahmed-15d52.firebaseapp.com",
-            databaseURL: "https://ahmed-15d52-default-rtdb.firebaseio.com",
-            projectId: "ahmed-15d52",
-            storageBucket: "ahmed-15d52.appspot.com",
-            messagingSenderId: "103191449244",
-            appId: "1:103191449244:web:c33ae04fd0473010da2759",
-            measurementId: "G-WF6LYR9F3D"
-        };
+    <div class="logout-container">
+      <a href="login.html" class="logout-btn" id="logoutBtn">تسجيل الخروج</a>
+    </div>
 
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
+    <div id="error" class="error" style="display: none;"></div>
+  </div>
 
-        onAuthStateChanged(auth, (user) => {
-            if (user) {
-                document.body.style.display = 'block';
-                checkAndShowModal(user.uid);
-            } else {
-                window.location.href = 'login.html';
-            }
-        });
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-app.js";
+    import { getDatabase, ref, onValue } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-database.js";
+    import { getAuth, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/9.22.1/firebase-auth.js";
 
-        // وظائف الأزرار
-        document.getElementById('newMissionButton').addEventListener('click', function() {
-            window.location.href = 'new_mission.html';
-        });
+    const firebaseConfig = {
+      apiKey: "AIzaSyAf9OuANGnp9WNDad6n7ky7K7v9mtNsEzI",
+      authDomain: "ahmed-15d52.firebaseapp.com",
+      databaseURL: "https://ahmed-15d52-default-rtdb.firebaseio.com",
+      projectId: "ahmed-15d52",
+      storageBucket: "ahmed-15d52.appspot.com",
+      messagingSenderId: "103191449244",
+      appId: "1:103191449244:web:c33ae04fd0473010da2759",
+      measurementId: "G-WF6LYR9F3D"
+    };
 
-        document.getElementById('newReceiptButton').addEventListener('click', function() {
-            window.location.href = 'new_receipt.html';
-        });
+    const app = initializeApp(firebaseConfig);
+    const database = getDatabase(app);
+    const auth = getAuth(app);
 
-        document.getElementById('viewDataButton').addEventListener('click', function() {
-            window.location.href = 'view_data.html';
-        });
+    let missionsData = {};
+    let receiptsData = {};
+    const CACHE_EXPIRY = 24 * 60 * 60 * 1000; // 24 ساعة
 
-        document.getElementById('expensesButton').addEventListener('click', function() {
-            window.location.href = 'employee_expenses.html';
-        });
+    function updateStats() {
+      const userEmail = auth.currentUser ? auth.currentUser.email : null;
+      if (!userEmail) return;
 
-        document.getElementById('logoutButton').addEventListener('click', function() {
-            signOut(auth).then(() => {
-                window.location.href = 'login.html';
-            }).catch((error) => {
-                console.error('Error signing out:', error);
-            });
-        });
+      const totalMissions = Object.keys(missionsData).filter(id => !missionsData[id].userEmail || missionsData[id].userEmail === userEmail).length;
+      const pendingMissions = Object.keys(missionsData).filter(id => (!missionsData[id].userEmail || missionsData[id].userEmail === userEmail) && missionsData[id].status === 'جاري المراجعة').length;
+      const rejectedMissions = Object.keys(missionsData).filter(id => (!missionsData[id].userEmail || missionsData[id].userEmail === userEmail) && missionsData[id].status === 'تم الرفض').length;
+      const totalReceipts = Object.keys(receiptsData).filter(id => !receiptsData[id].userEmail || receiptsData[id].userEmail === userEmail).length;
+      const pendingReceipts = Object.keys(receiptsData).filter(id => (!receiptsData[id].userEmail || receiptsData[id].userEmail === userEmail) && receiptsData[id].status === 'جاري المراجعة').length;
+      const rejectedReceipts = Object.keys(receiptsData).filter(id => (!receiptsData[id].userEmail || receiptsData[id].userEmail === userEmail) && receiptsData[id].status === 'تم الرفض').length;
 
-        // وظائف النافذة المنبثقة
-        const modal = document.getElementById("reminderModal");
-        const closeButton = document.getElementsByClassName("close")[0];
-        const closeModalButton = document.getElementById("closeModal");
+      document.getElementById('totalMissions').textContent = totalMissions;
+      document.getElementById('pendingMissions').textContent = pendingMissions;
+      document.getElementById('rejectedMissions').textContent = rejectedMissions;
+      document.getElementById('totalReceipts').textContent = totalReceipts;
+      document.getElementById('pendingReceipts').textContent = pendingReceipts;
+      document.getElementById('rejectedReceipts').textContent = rejectedReceipts;
+    }
 
-        function showModal() {
-            modal.style.display = "block";
+    function loadFromCache(key) {
+      const cached = localStorage.getItem(key);
+      if (cached) {
+        const { timestamp, data } = JSON.parse(cached);
+        if (Date.now() - timestamp < CACHE_EXPIRY) {
+          return data;
+        }
+      }
+      return null;
+    }
+
+    function saveToCache(key, data) {
+      localStorage.setItem(key, JSON.stringify({ timestamp: Date.now(), data }));
+    }
+
+    onAuthStateChanged(auth, (user) => {
+      if (user) {
+        document.getElementById('welcomeMsg').textContent = `مرحباً بك، ${user.email}!`;
+
+        // تحميل بيانات من الكاش
+        const cachedMissions = loadFromCache("missionsData");
+        if (cachedMissions) {
+          missionsData = cachedMissions;
+          updateStats();
         }
 
-        function closeModal() {
-            modal.style.display = "none";
+        const cachedReceipts = loadFromCache("receiptsData");
+        if (cachedReceipts) {
+          receiptsData = cachedReceipts;
+          updateStats();
         }
 
-        closeButton.onclick = closeModal;
+        // متابعة التغييرات من Firebase
+        const missionsRef = ref(database, 'missions');
+        onValue(missionsRef, (snapshot) => {
+          missionsData = snapshot.exists() ? snapshot.val() : {};
+          saveToCache("missionsData", missionsData);
+          updateStats();
+        });
 
-        window.onclick = function(event) {
-            if (event.target == modal) {
-                closeModal();
-            }
-        }
+        const receiptsRef = ref(database, 'driver_receipts');
+        onValue(receiptsRef, (snapshot) => {
+          receiptsData = snapshot.exists() ? snapshot.val() : {};
+          saveToCache("receiptsData", receiptsData);
+          updateStats();
+        });
 
-        // دالة للتحقق من تاريخ آخر ظهور وعرض النافذة المنبثقة إذا لزم الأمر
-        function checkAndShowModal(userId) {
-            const lastShownDate = localStorage.getItem(`lastShownDate_${userId}`);
-            const today = new Date().toDateString();
+        setTimeout(() => {
+          document.getElementById('reminder').style.display = 'block';
+        }, 1000);
 
-            if (lastShownDate !== today) {
-                showModal();
-                localStorage.setItem(`lastShownDate_${userId}`, today);
-            }
-        }
+      } else {
+        document.getElementById('error').textContent = 'الرجاء تسجيل الدخول أولاً.';
+        document.getElementById('error').style.display = 'block';
+        window.location.href = 'login.html';
+      }
+    });
 
-        // تعديل وظيفة إغلاق النافذة المنبثقة لتحديث التاريخ في التخزين المحلي
-        closeModalButton.onclick = function() {
-            closeModal();
-            const userId = auth.currentUser.uid;
-            localStorage.setItem(`lastShownDate_${userId}`, new Date().toDateString());
-        };
-    </script>
+    document.getElementById('logoutBtn').addEventListener('click', (e) => {
+      e.preventDefault();
+      signOut(auth).then(() => {
+        window.location.href = 'login.html';
+      }).catch((error) => {
+        document.getElementById('error').textContent = 'خطأ في تسجيل الخروج: ' + error.message;
+        document.getElementById('error').style.display = 'block';
+      });
+    });
+
+    document.getElementById('closeReminderBtn').addEventListener('click', () => {
+      document.getElementById('reminder').style.display = 'none';
+    });
+  </script>
 </body>
 </html>
