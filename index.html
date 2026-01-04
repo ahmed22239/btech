@@ -254,12 +254,26 @@
       const userEmail = auth.currentUser ? auth.currentUser.email : null;
       if (!userEmail) return;
 
-      const totalMissions = Object.keys(missionsData).filter(id => !missionsData[id].userEmail || missionsData[id].userEmail === userEmail).length;
-      const pendingMissions = Object.keys(missionsData).filter(id => (!missionsData[id].userEmail || missionsData[id].userEmail === userEmail) && missionsData[id].status === 'جاري المراجعة').length;
-      const rejectedMissions = Object.keys(missionsData).filter(id => (!missionsData[id].userEmail || missionsData[id].userEmail === userEmail) && missionsData[id].status === 'تم الرفض').length;
-      const totalReceipts = Object.keys(receiptsData).filter(id => !receiptsData[id].userEmail || receiptsData[id].userEmail === userEmail).length;
-      const pendingReceipts = Object.keys(receiptsData).filter(id => (!receiptsData[id].userEmail || receiptsData[id].userEmail === userEmail) && receiptsData[id].status === 'جاري المراجعة').length;
-      const rejectedReceipts = Object.keys(receiptsData).filter(id => (!receiptsData[id].userEmail || receiptsData[id].userEmail === userEmail) && receiptsData[id].status === 'تم الرفض').length;
+      const isAdmin = userEmail === 'ahmed29944@btech.com';
+      const isOperationReviewer = userEmail === 'ahmed30133@btech.com';
+
+      const getDisplayedStatus = (obj) => {
+        if (!isAdmin && !isOperationReviewer) {
+          return obj.operationReview || obj.status || 'جاري المراجعة';
+        }
+        return obj.status || 'جاري المراجعة';
+      };
+
+      const userMissions = Object.values(missionsData).filter(m => !m.userEmail || m.userEmail === userEmail);
+      const userReceipts = Object.values(receiptsData).filter(r => !r.userEmail || r.userEmail === userEmail);
+
+      const totalMissions = userMissions.length;
+      const pendingMissions = userMissions.filter(m => getDisplayedStatus(m) === 'جاري المراجعة').length;
+      const rejectedMissions = userMissions.filter(m => getDisplayedStatus(m) === 'تم الرفض').length;
+
+      const totalReceipts = userReceipts.length;
+      const pendingReceipts = userReceipts.filter(r => getDisplayedStatus(r) === 'جاري المراجعة').length;
+      const rejectedReceipts = userReceipts.filter(r => getDisplayedStatus(r) === 'تم الرفض').length;
 
       document.getElementById('totalMissions').textContent = totalMissions;
       document.getElementById('pendingMissions').textContent = pendingMissions;
