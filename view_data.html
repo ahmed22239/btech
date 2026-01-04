@@ -7,141 +7,43 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.16.9/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
     <style>
-        body {
-            font-family: Arial, sans-serif;
-            margin: 0;
-            padding: 10px;
-            background-color: #f0f0f0;
-            font-size: 14px;
-        }
-        .container {
-            background-color: white;
-            padding: 10px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            overflow-x: auto;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-        }
-        th, td {
-            border: 1px solid #ddd;
-            padding: 8px;
-            text-align: right;
-        }
-        th {
-            background-color: #4CAF50;
-            color: white;
-            cursor: pointer;
-        }
-        tr:nth-child(even) {
-            background-color: #f2f2f2;
-        }
-        .edit-btn, .download-btn, .delete-btn {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 5px 10px;
-            cursor: pointer;
-            margin: 5px;
-            font-size: 12px;
-        }
-        .delete-btn {
-            background-color: #f44336;
-        }
-        .edit-form {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background-color: white;
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 0 10px rgba(0,0,0,0.1);
-            max-width: 90%;
-            width: 300px;
-        }
-        .edit-form input, .edit-form select, .edit-form textarea {
-            display: block;
-            margin: 10px 0;
-            padding: 5px;
-            width: 100%;
-        }
-        .edit-form button {
-            background-color: #4CAF50;
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            cursor: pointer;
-            margin-top: 10px;
-        }
-        .status-select {
-            padding: 5px;
-            margin: 5px 0;
-        }
-        .status-pending {
-            background-color: #FFF3CD;
-            color: #856404;
-        }
-        .status-approved {
-            background-color: #D4EDDA;
-            color: #155724;
-        }
-        .status-rejected {
-            background-color: #F8D7DA;
-            color: #721C24;
-        }
-        input[type="text"] {
-            padding: 5px;
-            margin: 5px 0;
-            width: 200px;
-        }
-        button {
-            padding: 5px 10px;
-            margin: 5px;
-            cursor: pointer;
-        }
-        #loadingIndicator {
-            display: none;
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.7);
-            color: white;
-            padding: 20px;
-            border-radius: 5px;
-            z-index: 1000;
-        }
-        @media screen and (max-width: 600px) {
-            table {
-                font-size: 12px;
-            }
-            th, td {
-                padding: 5px;
-            }
-            .edit-btn, .download-btn, .delete-btn {
-                padding: 3px 6px;
-                font-size: 10px;
-            }
-        }
+        body { font-family: Arial, sans-serif; margin:0; padding:10px; background:#f0f0f0; font-size:14px; }
+        .container { background:white; padding:10px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1); overflow-x:auto; }
+        table { width:100%; border-collapse:collapse; min-width:600px; }
+        th, td { border:1px solid #ddd; padding:8px; text-align:right; }
+        th { background:#4CAF50; color:white; cursor:pointer; position:relative; }
+        tr:nth-child(even){ background:#f2f2f2; }
+        .edit-btn, .download-btn, .delete-btn, .bulk-delete-btn { background:#4CAF50; color:white; border:none; padding:5px 10px; cursor:pointer; margin:5px; font-size:12px; }
+        .delete-btn, .bulk-delete-btn { background:#f44336; }
+        .edit-form { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:white; padding:20px; border-radius:8px; box-shadow:0 0 10px rgba(0,0,0,0.1); max-width:90%; width:320px; z-index:2000; }
+        .edit-form input, .edit-form select, .edit-form textarea { display:block; margin:8px 0; padding:6px; width:100%; box-sizing:border-box; }
+        .edit-form button { background:#4CAF50; color:white; border:none; padding:10px 16px; cursor:pointer; margin-top:8px; }
+        .status-select { padding:5px; margin:5px 0; }
+        .status-pending { background:#FFF3CD; color:#856404; }
+        .status-approved { background:#D4EDDA; color:#155724; }
+        .status-rejected { background:#F8D7DA; color:#721C24; }
+        input[type="text"] { padding:6px; margin:5px 0; width:240px; }
+        button { padding:6px 10px; margin:5px; cursor:pointer; }
+        #loadingIndicator { display:none; position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); background:rgba(0,0,0,0.7); color:white; padding:12px 16px; border-radius:5px; z-index:3000; }
+        @media screen and (max-width:600px){ table{ font-size:12px } th, td{ padding:5px } .edit-btn, .download-btn, .delete-btn, .bulk-delete-btn{ padding:4px 6px; font-size:10px } }
+        .filter-select { display:none; position:absolute; top:100%; right:0; z-index:100; padding:5px; width:150px; background:white; border:1px solid #ddd; border-radius:4px; box-shadow:0 2px 5px rgba(0,0,0,0.2); }
+        th:hover .filter-select { display:block; }
+        .filter-select:focus { display:block; }
     </style>
 </head>
 <body>
     <div id="loadingIndicator">جاري التحديث...</div>
     <div class="container">
         <h2>بيانات المأموريات المسجلة</h2>
-        <input type="text" id="missionSearchInput" placeholder="ابحث في المأموريات..." oninput="searchTable('missionsTable', 'missionSearchInput')">
+        <input type="text" id="missionSearchInput" placeholder="ابحث في المأموريات (اسم سائق، رقم عداد، مندوب، رقم الجولة، ...)" oninput="searchTable('missionsTable', 'missionSearchInput')">
         <button class="download-btn" onclick="downloadExcel('missions')">تحميل بيانات المأموريات (Excel)</button>
-        <button id="bulkEditMissionBtn" class="edit-btn" onclick="openBulkEditMissionForm()" style="display: none;">تعديل جماعي للمأموريات</button>
-        <div style="overflow-x: auto;">
+        <button id="bulkEditMissionBtn" class="edit-btn" onclick="openBulkEditMissionForm()" style="display:none;">تعديل جماعي</button>
+        <button id="bulkDeleteMissionBtn" class="bulk-delete-btn" onclick="deleteBulkMissions()" style="display:none;">حذف المحدد</button>
+        <div style="overflow-x:auto;">
             <table id="missionsTable">
                 <thead>
                     <tr>
-                        <th id="selectAllMissionsHeader" style="display: none;"><input type="checkbox" id="selectAllMissions" onclick="toggleAllCheckboxes('missionsTable')"></th>
+                        <th id="selectAllMissionsHeader" style="display:none;"><input type="checkbox" id="selectAllMissions" onclick="toggleAllCheckboxes('missionsTable')"></th>
                         <th>التاريخ</th>
                         <th>اسم السائق</th>
                         <th>رقم السيارة</th>
@@ -153,12 +55,29 @@
                         <th>صافي العداد</th>
                         <th>عدد أيام الرحلة</th>
                         <th>بدل مبيت</th>
-                        <th>حالة المأمورية</th>
                         <th>ملاحظات</th>
-                        <th id="missionEmailHeader" style="display: none;">البريد الإلكتروني للمسجل</th>
-                        <th id="missionCreatedAtHeader" style="display: none;">تاريخ التسجيل</th>
+                        <th id="missionStatusHeader">
+                            حالة المأمورية
+                            <select id="missionStatusFilter" class="filter-select" onchange="filterTableByStatus('missionsTable', this.value, 'status')">
+                                <option value="">الكل</option>
+                                <option value="جاري المراجعة">جاري المراجعة</option>
+                                <option value="تم المراجعة">تم المراجعة</option>
+                                <option value="تم الرفض">تم الرفض</option>
+                            </select>
+                        </th>
+                        <th id="missionOperationReviewHeader" style="display:none;">
+                            مراجعة التشغيل
+                            <select id="missionOperationReviewFilter" class="filter-select" onchange="filterTableByStatus('missionsTable', this.value, 'operationReview')">
+                                <option value="">الكل</option>
+                                <option value="جاري المراجعة">جاري المراجعة</option>
+                                <option value="تم المراجعة">تم المراجعة</option>
+                                <option value="تم الرفض">تم الرفض</option>
+                            </select>
+                        </th>
+                        <th id="missionEmailHeader" style="display:none;">البريد الإلكتروني للمسجل</th>
+                        <th id="missionCreatedAtHeader" style="display:none;">تاريخ التسجيل</th>
                         <th>تعديل</th>
-                        <th id="missionDeleteHeader" style="display: none;">حذف</th>
+                        <th id="missionDeleteHeader" style="display:none;">حذف</th>
                     </tr>
                 </thead>
                 <tbody id="missionsTableBody"></tbody>
@@ -166,30 +85,48 @@
         </div>
 
         <h2>بيانات الإيصالات المسجلة</h2>
-        <input type="text" id="receiptSearchInput" placeholder="ابحث في الإيصالات..." oninput="searchTable('receiptsTable', 'receiptSearchInput')">
+        <input type="text" id="receiptSearchInput" placeholder="ابحث في الإيصالات (اسم سائق، رقم الدور، رقم الطلب، ...)" oninput="searchTable('receiptsTable', 'receiptSearchInput')">
         <button class="download-btn" onclick="downloadExcel('receipts')">تحميل بيانات الإيصالات (Excel)</button>
-        <button id="bulkEditReceiptBtn" class="edit-btn" onclick="openBulkEditReceiptForm()" style="display: none;">تعديل جماعي للإيصالات</button>
-        <div style="overflow-x: auto;">
+        <button id="bulkEditReceiptBtn" class="edit-btn" onclick="openBulkEditReceiptForm()" style="display:none;">تعديل جماعي</button>
+        <button id="bulkDeleteReceiptBtn" class="bulk-delete-btn" onclick="deleteBulkReceipts()" style="display:none;">حذف المحدد</button>
+        <div style="overflow-x:auto;">
             <table id="receiptsTable">
                 <thead>
                     <tr>
-                        <th id="selectAllReceiptsHeader" style="display: none;"><input type="checkbox" id="selectAllReceipts" onclick="toggleAllCheckboxes('receiptsTable')"></th>
+                        <th id="selectAllReceiptsHeader" style="display:none;"><input type="checkbox" id="selectAllReceipts" onclick="toggleAllCheckboxes('receiptsTable')"></th>
                         <th>التاريخ</th>
                         <th>اسم السائق</th>
                         <th>اسم المندوب</th>
                         <th>رقم السيارة</th>
                         <th>نوع الإيصال</th>
-                        <th>حالة الإيصال</th>
                         <th>المحافظة</th>
                         <th>المنتج</th>
                         <th>رقم الدور</th>
                         <th>رقم الطلب</th>
                         <th>وقت التأخير</th>
                         <th>ملاحظات</th>
-                        <th id="receiptEmailHeader" style="display: none;">البريد الإلكتروني للمسجل</th>
-                        <th id="receiptCreatedAtHeader" style="display: none;">تاريخ التسجيل</th>
+                        <th id="receiptStatusHeader">
+                            حالة الإيصال
+                            <select id="receiptStatusFilter" class="filter-select" onchange="filterTableByStatus('receiptsTable', this.value, 'status')">
+                                <option value="">الكل</option>
+                                <option value="جاري المراجعة">جاري المراجعة</option>
+                                <option value="تم المراجعة">تم المراجعة</option>
+                                <option value="تم الرفض">تم الرفض</option>
+                            </select>
+                        </th>
+                        <th id="receiptOperationReviewHeader" style="display:none;">
+                            مراجعة التشغيل
+                            <select id="receiptOperationReviewFilter" class="filter-select" onchange="filterTableByStatus('receiptsTable', this.value, 'operationReview')">
+                                <option value="">الكل</option>
+                                <option value="جاري المراجعة">جاري المراجعة</option>
+                                <option value="تم المراجعة">تم المراجعة</option>
+                                <option value="تم الرفض">تم الرفض</option>
+                            </select>
+                        </th>
+                        <th id="receiptEmailHeader" style="display:none;">البريد الإلكتروني للمسجل</th>
+                        <th id="receiptCreatedAtHeader" style="display:none;">تاريخ التسجيل</th>
                         <th>تعديل</th>
-                        <th id="receiptDeleteHeader" style="display: none;">حذف</th>
+                        <th id="receiptDeleteHeader" style="display:none;">حذف</th>
                     </tr>
                 </thead>
                 <tbody id="receiptsTableBody"></tbody>
@@ -197,6 +134,7 @@
         </div>
     </div>
 
+    <!-- نماذج التعديل -->
     <div id="editMissionForm" class="edit-form">
         <h3>تعديل المأمورية</h3>
         <input type="hidden" id="editMissionId">
@@ -214,7 +152,12 @@
             <option value="لا">لا</option>
         </select>
         <textarea id="editMissionNotes" placeholder="ملاحظات"></textarea>
-        <select id="editMissionStatus" class="status-select" style="display: none;">
+        <select id="editMissionStatus" class="status-select" style="display:none;">
+            <option value="جاري المراجعة">جاري المراجعة</option>
+            <option value="تم المراجعة">تم المراجعة</option>
+            <option value="تم الرفض">تم الرفض</option>
+        </select>
+        <select id="editMissionOperationReview" class="status-select" style="display:none;">
             <option value="جاري المراجعة">جاري المراجعة</option>
             <option value="تم المراجعة">تم المراجعة</option>
             <option value="تم الرفض">تم الرفض</option>
@@ -249,7 +192,12 @@
         <input type="text" id="editReceiptOrderNumber" placeholder="رقم الطلب">
         <input type="time" id="editReceiptDelayTime" placeholder="وقت التأخير">
         <textarea id="editReceiptNotes" placeholder="ملاحظات"></textarea>
-        <select id="editReceiptStatus" class="status-select" style="display: none;">
+        <select id="editReceiptStatus" class="status-select" style="display:none;">
+            <option value="جاري المراجعة">جاري المراجعة</option>
+            <option value="تم المراجعة">تم المراجعة</option>
+            <option value="تم الرفض">تم الرفض</option>
+        </select>
+        <select id="editReceiptOperationReview" class="status-select" style="display:none;">
             <option value="جاري المراجعة">جاري المراجعة</option>
             <option value="تم المراجعة">تم المراجعة</option>
             <option value="تم الرفض">تم الرفض</option>
@@ -265,6 +213,11 @@
             <option value="تم المراجعة">تم المراجعة</option>
             <option value="تم الرفض">تم الرفض</option>
         </select>
+        <select id="bulkEditMissionOperationReview" class="status-select">
+            <option value="جاري المراجعة">جاري المراجعة</option>
+            <option value="تم المراجعة">تم المراجعة</option>
+            <option value="تم الرفض">تم الرفض</option>
+        </select>
         <button onclick="updateBulkMissions()">حفظ التعديلات</button>
         <button onclick="closeEditForm('bulkEditMissionForm')">إلغاء</button>
     </div>
@@ -272,6 +225,11 @@
     <div id="bulkEditReceiptForm" class="edit-form">
         <h3>تعديل جماعي للإيصالات</h3>
         <select id="bulkEditReceiptStatus" class="status-select">
+            <option value="جاري المراجعة">جاري المراجعة</option>
+            <option value="تم المراجعة">تم المراجعة</option>
+            <option value="تم الرفض">تم الرفض</option>
+        </select>
+        <select id="bulkEditReceiptOperationReview" class="status-select">
             <option value="جاري المراجعة">جاري المراجعة</option>
             <option value="تم المراجعة">تم المراجعة</option>
             <option value="تم الرفض">تم الرفض</option>
@@ -302,240 +260,293 @@
 
         let currentUserEmail = '';
         let isAdmin = false;
+        let isOperationReviewer = false;
 
-        function saveToLocalStorage(key, data) {
-            localStorage.setItem(key, JSON.stringify(data));
+        let missionsArrayGlobal = [];
+        let receiptsArrayGlobal = [];
+
+        let currentMissionFilter = '';
+        let currentReceiptFilter = '';
+        let missionStatusFilter = '';
+        let missionOperationReviewFilter = '';
+        let receiptStatusFilter = '';
+        let receiptOperationReviewFilter = '';
+
+        function saveToLocalStorage(key, data) { localStorage.setItem(key, JSON.stringify(data)); }
+        function getFromLocalStorage(key) { const v = localStorage.getItem(key); return v ? JSON.parse(v) : null; }
+        function debounce(fn, wait) { let t; return function(...args){ clearTimeout(t); t = setTimeout(()=>fn.apply(this,args), wait); }; }
+        function s2ab(s){ const buf=new ArrayBuffer(s.length); const view=new Uint8Array(buf); for(let i=0;i<s.length;i++) view[i]=s.charCodeAt(i)&0xFF; return buf; }
+        function getStatusClass(status){ switch(status){ case 'جاري المراجعة': return 'status-pending'; case 'تم المراجعة': return 'status-approved'; case 'تم الرفض': return 'status-rejected'; default: return 'status-pending'; } }
+        function calculateNetOdometer(start, end){ const s=parseFloat(start)||0, e=parseFloat(end)||0; return (e-s).toFixed(2); }
+        function showLoading(on){ document.getElementById('loadingIndicator').style.display = on ? 'block' : 'none'; }
+
+        async function renderTableInBatches(tableId, rowsData, rowRenderer, batchSize = 150) {
+            const tbody = document.getElementById(tableId + 'Body');
+            tbody.innerHTML = '';
+            if (!rowsData || rowsData.length === 0) {
+                const cols = tableId === 'missionsTable' ? 18 : 17;
+                tbody.innerHTML = `<tr><td colspan="${cols}">لا توجد بيانات لعرضها</td></tr>`;
+                return;
+            }
+            let i = 0;
+            while (i < rowsData.length) {
+                const fragment = document.createDocumentFragment();
+                const end = Math.min(i + batchSize, rowsData.length);
+                for (let j = i; j < end; j++) fragment.appendChild(rowRenderer(rowsData[j]));
+                tbody.appendChild(fragment);
+                await new Promise(resolve => setTimeout(resolve, 0));
+                i = end;
+            }
         }
 
-        function getFromLocalStorage(key) {
-            const data = localStorage.getItem(key);
-            return data ? JSON.parse(data) : null;
+        function createMissionRowObj(missionObj) {
+            const { id, mission } = missionObj;
+            const tr = document.createElement('tr');
+
+            if (isAdmin) {
+                const tdCheck = document.createElement('td'); const cb = document.createElement('input'); cb.type='checkbox'; cb.value=id; tdCheck.appendChild(cb); tr.appendChild(tdCheck);
+            }
+            const cells = [
+                mission.date || '',
+                mission.driver || '',
+                mission.carNumber || '',
+                mission.delegate || '',
+                mission.direction || '',
+                mission.tourNumber || '',
+                mission.startOdometer || '',
+                mission.endOdometer || '',
+                calculateNetOdometer(mission.startOdometer, mission.endOdometer),
+                mission.tripDays || '',
+                mission.overnightAllowance || '',
+                mission.notes || ''
+            ];
+            cells.forEach(c => { const td = document.createElement('td'); td.innerText = c; tr.appendChild(td); });
+
+            const displayedStatus = (!isAdmin && !isOperationReviewer) ? (mission.operationReview || mission.status || 'جاري المراجعة') : (mission.status || 'جاري المراجعة'); const statusTd = document.createElement('td'); statusTd.className = getStatusClass(displayedStatus); statusTd.innerText = displayedStatus; tr.appendChild(statusTd);
+
+            if (isAdmin || isOperationReviewer) { const opTd = document.createElement('td'); opTd.className = getStatusClass(mission.operationReview || 'جاري المراجعة'); opTd.innerText = mission.operationReview || 'جاري المراجعة'; tr.appendChild(opTd); }
+            if (isAdmin) { const emailTd = document.createElement('td'); emailTd.innerText = mission.userEmail || ''; tr.appendChild(emailTd); const createdAtTd = document.createElement('td'); createdAtTd.innerText = mission.createdAt ? new Date(mission.createdAt).toLocaleString('ar-EG') : ''; tr.appendChild(createdAtTd); }
+
+            const editTd = document.createElement('td'); const editBtn = document.createElement('button'); editBtn.className='edit-btn'; editBtn.innerText='تعديل';
+            const editable = (isAdmin || isOperationReviewer) || ((mission.operationReview !== 'تم المراجعة') && (mission.status !== 'تم المراجعة' && mission.status !== 'تم الرفض')); if(!editable) editBtn.disabled=true;
+            editBtn.addEventListener('click', ()=>openEditMissionForm(id)); editTd.appendChild(editBtn); tr.appendChild(editTd);
+
+            if (isAdmin) { const delTd = document.createElement('td'); const delBtn = document.createElement('button'); delBtn.className='delete-btn'; delBtn.innerText='حذف'; delBtn.addEventListener('click', ()=>deleteMission(id)); delTd.appendChild(delBtn); tr.appendChild(delTd); }
+            return tr;
         }
 
-        // التحقق من حالة تسجيل الدخول مع تسجيل أخطاء واضح
-        onAuthStateChanged(auth, (user) => {
-            console.log('onAuthStateChanged triggered');
-            if (user) {
-                currentUserEmail = user.email;
-                console.log('المستخدم الحالي:', currentUserEmail);
-                isAdmin = (currentUserEmail === 'ahmed29944@btech.com');
-                if (isAdmin) {
-                    console.log('المستخدم أدمن: يتم عرض الأعمدة الإضافية');
-                    document.getElementById('missionEmailHeader').style.display = 'table-cell';
-                    document.getElementById('receiptEmailHeader').style.display = 'table-cell';
-                    document.getElementById('missionDeleteHeader').style.display = 'table-cell';
-                    document.getElementById('receiptDeleteHeader').style.display = 'table-cell';
-                    document.getElementById('editMissionStatus').style.display = 'block';
-                    document.getElementById('editReceiptStatus').style.display = 'block';
-                    document.getElementById('bulkEditMissionBtn').style.display = 'inline-block';
-                    document.getElementById('bulkEditReceiptBtn').style.display = 'inline-block';
-                    document.getElementById('selectAllMissionsHeader').style.display = 'table-cell';
-                    document.getElementById('selectAllReceiptsHeader').style.display = 'table-cell';
-                    document.getElementById('missionCreatedAtHeader').style.display = 'table-cell';
-                    document.getElementById('receiptCreatedAtHeader').style.display = 'table-cell';
-                } else {
-                    console.log('المستخدم عادي:', currentUserEmail);
-                }
-                fetchAndDisplayMissions();
-                fetchAndDisplayReceipts();
-            } else {
-                console.error('لم يتم تسجيل دخول المستخدم');
-                alert('يرجى تسجيل الدخول أولاً.');
-                window.location.href = 'login.html';
-            }
-        }, (error) => {
-            console.error('خطأ في التحقق من حالة تسجيل الدخول:', error);
-            alert('خطأ في التحقق من حالة تسجيل الدخول: ' + error.message);
-            window.location.href = 'login.html';
-        });
+        function createReceiptRowObj(receiptObj) {
+            const { id, receipt } = receiptObj;
+            const tr = document.createElement('tr');
 
-        function getStatusClass(status) {
-            switch(status) {
-                case 'جاري المراجعة':
-                    return 'status-pending';
-                case 'تم المراجعة':
-                    return 'status-approved';
-                case 'تم الرفض':
-                    return 'status-rejected';
-                default:
-                    return 'status-pending';
-            }
+            if (isAdmin) { const tdCheck = document.createElement('td'); const cb = document.createElement('input'); cb.type='checkbox'; cb.value=id; tdCheck.appendChild(cb); tr.appendChild(tdCheck); }
+
+            const cells = [
+                receipt.date || '',
+                receipt.driver || '',
+                receipt.delegate || '',
+                receipt.carNumber || '',
+                receipt.receiptType || '',
+                receipt.governorate || '',
+                receipt.product || '',
+                receipt.floorNumber || '',
+                receipt.orderNumber || '',
+                receipt.delayTime || '',
+                receipt.notes || ''
+            ];
+            cells.forEach(c => { const td = document.createElement('td'); td.innerText = c; tr.appendChild(td); });
+
+            const displayedStatus = (!isAdmin && !isOperationReviewer) ? (receipt.operationReview || receipt.status || 'جاري المراجعة') : (receipt.status || 'جاري المراجعة'); const statusTd = document.createElement('td'); statusTd.className = getStatusClass(displayedStatus); statusTd.innerText = displayedStatus; tr.appendChild(statusTd);
+
+            if (isAdmin || isOperationReviewer) { const opTd = document.createElement('td'); opTd.className = getStatusClass(receipt.operationReview || 'جاري المراجعة'); opTd.innerText = receipt.operationReview || 'جاري المراجعة'; tr.appendChild(opTd); }
+            if (isAdmin) { const emailTd = document.createElement('td'); emailTd.innerText = receipt.userEmail || ''; tr.appendChild(emailTd); const createdAtTd = document.createElement('td'); createdAtTd.innerText = receipt.createdAt ? new Date(receipt.createdAt).toLocaleString('ar-EG') : ''; tr.appendChild(createdAtTd); }
+
+            const editTd = document.createElement('td'); const editBtn = document.createElement('button'); editBtn.className='edit-btn'; editBtn.innerText='تعديل';
+            const editable = (isAdmin || isOperationReviewer) || ((receipt.operationReview !== 'تم المراجعة') && (receipt.status !== 'تم المراجعة' && receipt.status !== 'تم الرفض')); if(!editable) editBtn.disabled=true;
+            editBtn.addEventListener('click', ()=>openEditReceiptForm(id)); editTd.appendChild(editBtn); tr.appendChild(editTd);
+
+            if (isAdmin) { const delTd = document.createElement('td'); const delBtn = document.createElement('button'); delBtn.className='delete-btn'; delBtn.innerText='حذف'; delBtn.addEventListener('click', ()=>deleteReceipt(id)); delTd.appendChild(delBtn); tr.appendChild(delTd); }
+            return tr;
+        }
+
+        function prepareMissionsArray(rawData) {
+            if (!rawData) return [];
+            return Object.keys(rawData).map(id => ({ id, mission: rawData[id] }))
+                .filter(item => isAdmin || isOperationReviewer || item.mission.userEmail === currentUserEmail)
+                .sort((a,b) => { const tA = a.mission.createdAt ? new Date(a.mission.createdAt).getTime() : 0; const tB = b.mission.createdAt ? new Date(b.mission.createdAt).getTime() : 0; return tB - tA; });
+        }
+        function prepareReceiptsArray(rawData) {
+            if (!rawData) return [];
+            return Object.keys(rawData).map(id => ({ id, receipt: rawData[id] }))
+                .filter(item => isAdmin || isOperationReviewer || item.receipt.userEmail === currentUserEmail)
+                .sort((a,b) => { const tA = a.receipt.createdAt ? new Date(a.receipt.createdAt).getTime() : 0; const tB = b.receipt.createdAt ? new Date(b.receipt.createdAt).getTime() : 0; return tB - tA; });
         }
 
         function fetchAndDisplayMissions() {
-            console.log('جلب بيانات المأموريات...');
-            const cachedMissions = getFromLocalStorage('missions');
-            if (cachedMissions) {
-                console.log('عرض البيانات من التخزين المحلي:', cachedMissions);
-                displayMissions(cachedMissions);
-            } else {
-                console.log('لا توجد بيانات في التخزين المحلي للمأموريات');
-            }
-
+            const cached = getFromLocalStorage('missions');
+            if (cached) missionsArrayGlobal = prepareMissionsArray(cached);
+            renderTableInBatches('missionsTable', missionsArrayGlobal, createMissionRowObj);
             const missionsRef = ref(database, 'missions');
             onValue(missionsRef, (snapshot) => {
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    console.log('البيانات المجلوبة من Firebase (missions):', data);
-                    saveToLocalStorage('missions', data);
-                    displayMissions(data);
-                } else {
-                    console.log('لا توجد بيانات في مسار missions في Firebase');
-                    displayMissions({});
-                    document.getElementById('missionsTableBody').innerHTML = '<tr><td colspan="17">لا توجد مأموريات لعرضها</td></tr>';
-                }
-            }, (error) => {
-                console.error('خطأ في جلب بيانات المأموريات من Firebase:', error);
-                alert('حدث خطأ أثناء جلب بيانات المأموريات: ' + error.message);
-            });
-        }
-
-        function displayMissions(data) {
-            const missionsTableBody = document.getElementById('missionsTableBody');
-            missionsTableBody.innerHTML = '';
-            if (!data || Object.keys(data).length === 0) {
-                console.log('لا توجد بيانات لعرضها في جدول المأموريات');
-                missionsTableBody.innerHTML = '<tr><td colspan="17">لا توجد مأموريات لعرضها</td></tr>';
-                return;
-            }
-            
-            const missionsArray = Object.keys(data).map(id => ({
-                id,
-                ...data[id]
-            })).filter(mission => isAdmin || mission.userEmail === currentUserEmail)
-              .sort((a, b) => {
-                  const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                  const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                  return timeB - timeA; // ترتيب تنازلي
-              });
-
-            let displayedCount = 0;
-            missionsArray.forEach(({ id, ...mission }) => {
-                const statusClass = getStatusClass(mission.status);
-                const isEditable = (mission.status !== 'تم المراجعة' && mission.status !== 'تم الرفض') || isAdmin;
-                const netOdometer = calculateNetOdometer(mission.startOdometer, mission.endOdometer);
-                const createdAt = mission.createdAt ? new Date(mission.createdAt).toLocaleString('ar-EG') : '';
-                const row = `<tr>
-                    ${isAdmin ? `<td><input type="checkbox" value="${id}"></td>` : ''}
-                    <td>${mission.date || ''}</td>
-                    <td>${mission.driver || ''}</td>
-                    <td>${mission.carNumber || ''}</td>
-                    <td>${mission.delegate || ''}</td>
-                    <td>${mission.direction || ''}</td>
-                    <td>${mission.tourNumber || ''}</td>
-                    <td>${mission.startOdometer || ''}</td>
-                    <td>${mission.endOdometer || ''}</td>
-                    <td>${netOdometer}</td>
-                    <td>${mission.tripDays || ''}</td>
-                    <td>${mission.overnightAllowance || ''}</td>
-                    <td class="${statusClass}">${mission.status || 'جاري المراجعة'}</td>
-                    <td>${mission.notes || ''}</td>
-                    ${isAdmin ? `<td>${mission.userEmail || ''}</td>` : ''}
-                    ${isAdmin ? `<td>${createdAt}</td>` : ''}
-                    <td><button class="edit-btn" onclick="openEditMissionForm('${id}')" ${!isEditable ? 'disabled' : ''}>تعديل</button></td>
-                    ${isAdmin ? `<td><button class="delete-btn" onclick="deleteMission('${id}')">حذف</button></td>` : ''}
-                </tr>`;
-                missionsTableBody.innerHTML += row;
-                displayedCount++;
-            });
-            console.log(`تم عرض ${displayedCount} مأمورية في الجدول`);
-            if (displayedCount === 0) {
-                missionsTableBody.innerHTML = '<tr><td colspan="17">لا توجد مأموريات متاحة لعرضها</td></tr>';
-            }
-        }
-
-        function calculateNetOdometer(start, end) {
-            const startOdometer = parseFloat(start) || 0;
-            const endOdometer = parseFloat(end) || 0;
-            return (endOdometer - startOdometer).toFixed(2);
+                const data = snapshot.exists() ? snapshot.val() : {};
+                saveToLocalStorage('missions', data);
+                missionsArrayGlobal = prepareMissionsArray(data);
+                const filtered = applyAllMissionFilters(missionsArrayGlobal, currentMissionFilter, missionStatusFilter, missionOperationReviewFilter);
+                renderTableInBatches('missionsTable', filtered, createMissionRowObj);
+            }, (error) => { alert('حدث خطأ أثناء جلب بيانات المأموريات: ' + error.message); });
         }
 
         function fetchAndDisplayReceipts() {
-            console.log('جلب بيانات الإيصالات...');
-            const cachedReceipts = getFromLocalStorage('driver_receipts');
-            if (cachedReceipts) {
-                console.log('عرض بيانات الإيصالات من التخزين المحلي:', cachedReceipts);
-                displayReceipts(cachedReceipts);
-            } else {
-                console.log('لا توجد بيانات إيصالات في التخزين المحلي');
-            }
-
+            const cached = getFromLocalStorage('driver_receipts');
+            if (cached) receiptsArrayGlobal = prepareReceiptsArray(cached);
+            renderTableInBatches('receiptsTable', receiptsArrayGlobal, createReceiptRowObj);
             const receiptsRef = ref(database, 'driver_receipts');
             onValue(receiptsRef, (snapshot) => {
-                if (snapshot.exists()) {
-                    const data = snapshot.val();
-                    console.log('بيانات الإيصالات المجلوبة من Firebase (driver_receipts):', data);
-                    saveToLocalStorage('driver_receipts', data);
-                    displayReceipts(data);
-                } else {
-                    console.log('لا توجد بيانات في مسار driver_receipts في Firebase');
-                    displayReceipts({});
-                    document.getElementById('receiptsTableBody').innerHTML = '<tr><td colspan="16">لا توجد إيصالات لعرضها</td></tr>';
+                const data = snapshot.exists() ? snapshot.val() : {};
+                saveToLocalStorage('driver_receipts', data);
+                receiptsArrayGlobal = prepareReceiptsArray(data);
+                const filtered = applyAllReceiptFilters(receiptsArrayGlobal, currentReceiptFilter, receiptStatusFilter, receiptOperationReviewFilter);
+                renderTableInBatches('receiptsTable', filtered, createReceiptRowObj);
+            }, (error) => { alert('حدث خطأ أثناء جلب بيانات الإيصالات: ' + error.message); });
+        }
+
+        function applyAllMissionFilters(array, textFilter, statusFilter, opFilter) {
+            if (!array) return [];
+            const txt = (textFilter || '').toString().trim().toUpperCase();
+            return array.filter(item => {
+                const m = item.mission;
+                if (statusFilter && (m.status || '') !== statusFilter) return false;
+                if (opFilter && ((m.operationReview || 'جاري المراجعة') !== opFilter)) return false;
+                if (!txt) return true;
+                const net = calculateNetOdometer(m.startOdometer, m.endOdometer);
+                const created = m.createdAt ? new Date(m.createdAt).toLocaleString('ar-EG') : '';
+                const hay = [
+                    m.date, m.driver, m.carNumber, m.delegate, m.direction, m.tourNumber,
+                    m.startOdometer, m.endOdometer, net, m.tripDays, m.overnightAllowance,
+                    m.notes, m.userEmail, created
+                ].map(v => (v === undefined || v === null) ? '' : v.toString()).join(' ').toUpperCase();
+                return hay.indexOf(txt) !== -1;
+            });
+        }
+
+        function applyAllReceiptFilters(array, textFilter, statusFilter, opFilter) {
+            if (!array) return [];
+            const txt = (textFilter || '').toString().trim().toUpperCase();
+            return array.filter(item => {
+                const r = item.receipt;
+                if (statusFilter && (r.status || '') !== statusFilter) return false;
+                if (opFilter && ((r.operationReview || 'جاري المراجعة') !== opFilter)) return false;
+                if (!txt) return true;
+                const created = r.createdAt ? new Date(r.createdAt).toLocaleString('ar-EG') : '';
+                const hay = [
+                    r.date, r.driver, r.delegate, r.carNumber, r.receiptType, r.governorate,
+                    r.product, r.floorNumber, r.orderNumber, r.delayTime, r.notes, r.userEmail, created
+                ].map(v => (v === undefined || v === null) ? '' : v.toString()).join(' ').toUpperCase();
+                return hay.indexOf(txt) !== -1;
+            });
+        }
+
+        const debouncedMissionSearch = debounce((val) => {
+            currentMissionFilter = val;
+            const filtered = applyAllMissionFilters(missionsArrayGlobal, currentMissionFilter, missionStatusFilter, missionOperationReviewFilter);
+            renderTableInBatches('missionsTable', filtered, createMissionRowObj);
+        }, 300);
+
+        const debouncedReceiptSearch = debounce((val) => {
+            currentReceiptFilter = val;
+            const filtered = applyAllReceiptFilters(receiptsArrayGlobal, currentReceiptFilter, receiptStatusFilter, receiptOperationReviewFilter);
+            renderTableInBatches('receiptsTable', filtered, createReceiptRowObj);
+        }, 300);
+
+        window.searchTable = function(tableId, inputId) {
+            const value = document.getElementById(inputId).value;
+            if (tableId === 'missionsTable') debouncedMissionSearch(value);
+            else if (tableId === 'receiptsTable') debouncedReceiptSearch(value);
+        };
+
+        window.filterTableByStatus = function(tableId, status, column) {
+            if (tableId === 'missionsTable') {
+                if (column === 'status') missionStatusFilter = status; else missionOperationReviewFilter = status;
+                const filtered = applyAllMissionFilters(missionsArrayGlobal, currentMissionFilter, missionStatusFilter, missionOperationReviewFilter);
+                renderTableInBatches('missionsTable', filtered, createMissionRowObj);
+            } else {
+                if (column === 'status') receiptStatusFilter = status; else receiptOperationReviewFilter = status;
+                const filtered = applyAllReceiptFilters(receiptsArrayGlobal, currentReceiptFilter, receiptStatusFilter, receiptOperationReviewFilter);
+                renderTableInBatches('receiptsTable', filtered, createReceiptRowObj);
+            }
+        };
+
+        function sortMissionsArray(colIndex, asc) {
+            const mapField = (idx, item) => {
+                const m = item.mission;
+                switch(idx) {
+                    case 0: return m.date || '';
+                    case 1: return m.driver || '';
+                    case 2: return m.carNumber || '';
+                    case 3: return m.delegate || '';
+                    default: return m.createdAt ? new Date(m.createdAt).getTime() : 0;
                 }
-            }, (error) => {
-                console.error('خطأ في جلب بيانات الإيصالات من Firebase:', error);
-                alert('حدث خطأ أثناء جلب بيانات الإيصالات: ' + error.message);
+            };
+            missionsArrayGlobal.sort((a,b) => {
+                const A = mapField(colIndex, a), B = mapField(colIndex, b);
+                if (!isNaN(A) && !isNaN(B)) return asc ? A - B : B - A;
+                return asc ? A.toString().localeCompare(B.toString()) : B.toString().localeCompare(A.toString());
             });
+            const filtered = applyAllMissionFilters(missionsArrayGlobal, currentMissionFilter, missionStatusFilter, missionOperationReviewFilter);
+            renderTableInBatches('missionsTable', filtered, createMissionRowObj);
+        }
+        function sortReceiptsArray(colIndex, asc) {
+            const mapField = (idx, item) => {
+                const r = item.receipt;
+                switch(idx) {
+                    case 0: return r.date || '';
+                    case 1: return r.driver || '';
+                    case 2: return r.delegate || '';
+                    case 3: return r.carNumber || '';
+                    default: return r.createdAt ? new Date(r.createdAt).getTime() : 0;
+                }
+            };
+            receiptsArrayGlobal.sort((a,b) => {
+                const A = mapField(colIndex, a), B = mapField(colIndex, b);
+                if (!isNaN(A) && !isNaN(B)) return asc ? A - B : B - A;
+                return asc ? A.toString().localeCompare(B.toString()) : B.toString().localeCompare(A.toString());
+            });
+            const filtered = applyAllReceiptFilters(receiptsArrayGlobal, currentReceiptFilter, receiptStatusFilter, receiptOperationReviewFilter);
+            renderTableInBatches('receiptsTable', filtered, createReceiptRowObj);
         }
 
-        function displayReceipts(data) {
-            const receiptsTableBody = document.getElementById('receiptsTableBody');
-            receiptsTableBody.innerHTML = '';
-            if (!data || Object.keys(data).length === 0) {
-                console.log('لا توجد بيانات لعرضها في جدول الإيصالات');
-                receiptsTableBody.innerHTML = '<tr><td colspan="16">لا توجد إيصالات لعرضها</td></tr>';
-                return;
-            }
-
-            const receiptsArray = Object.keys(data).map(id => ({
-                id,
-                ...data[id]
-            })).filter(receipt => isAdmin || receipt.userEmail === currentUserEmail)
-              .sort((a, b) => {
-                  const timeA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
-                  const timeB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
-                  return timeB - timeA; // ترتيب تنازلي
-              });
-
-            let displayedCount = 0;
-            receiptsArray.forEach(({ id, ...receipt }) => {
-                const statusClass = getStatusClass(receipt.status);
-                const isEditable = (receipt.status !== 'تم المراجعة' && receipt.status !== 'تم الرفض') || isAdmin;
-                const createdAt = receipt.createdAt ? new Date(receipt.createdAt).toLocaleString('ar-EG') : '';
-                const row = `<tr>
-                    ${isAdmin ? `<td><input type="checkbox" value="${id}"></td>` : ''}
-                    <td>${receipt.date || ''}</td>
-                    <td>${receipt.driver || ''}</td>
-                    <td>${receipt.delegate || ''}</td>
-                    <td>${receipt.carNumber || ''}</td>
-                    <td>${receipt.receiptType || ''}</td>
-                    <td class="${statusClass}">${receipt.status || 'جاري المراجعة'}</td>
-                    <td>${receipt.governorate || ''}</td>
-                    <td>${receipt.product || ''}</td>
-                    <td>${receipt.floorNumber || ''}</td>
-                    <td>${receipt.orderNumber || ''}</td>
-                    <td>${receipt.delayTime || ''}</td>
-                    <td>${receipt.notes || ''}</td>
-                    ${isAdmin ? `<td>${receipt.userEmail || ''}</td>` : ''}
-                    ${isAdmin ? `<td>${createdAt}</td>` : ''}
-                    <td><button class="edit-btn" onclick="openEditReceiptForm('${id}')" ${!isEditable ? 'disabled' : ''}>تعديل</button></td>
-                    ${isAdmin ? `<td><button class="delete-btn" onclick="deleteReceipt('${id}')">حذف</button></td>` : ''}
-                </tr>`;
-                receiptsTableBody.innerHTML += row;
-                displayedCount++;
+        document.querySelectorAll('#missionsTable th').forEach((header, index) => {
+            let asc = true;
+            header.addEventListener('click', (e) => {
+                if (e.target.classList.contains('filter-select')) return;
+                sortMissionsArray(index - (isAdmin ? 1 : 0), asc);
+                asc = !asc;
             });
-            console.log(`تم عرض ${displayedCount} إيصال في الجدول`);
-            if (displayedCount === 0) {
-                receiptsTableBody.innerHTML = '<tr><td colspan="16">لا توجد إيصالات متاحة لعرضها</td></tr>';
-            }
+        });
+        document.querySelectorAll('#receiptsTable th').forEach((header, index) => {
+            let asc = true;
+            header.addEventListener('click', (e) => {
+                if (e.target.classList.contains('filter-select')) return;
+                sortReceiptsArray(index - (isAdmin ? 1 : 0), asc);
+                asc = !asc;
+            });
+        });
+
+        function updateMissionInMemory(id, updatedMission) {
+            const idx = missionsArrayGlobal.findIndex(x => x.id === id);
+            if (idx !== -1) { missionsArrayGlobal[idx].mission = { ...missionsArrayGlobal[idx].mission, ...updatedMission }; saveToLocalStorage('missions', arrayToObject(missionsArrayGlobal, 'mission')); }
         }
+        function updateReceiptInMemory(id, updatedReceipt) {
+            const idx = receiptsArrayGlobal.findIndex(x => x.id === id);
+            if (idx !== -1) { receiptsArrayGlobal[idx].receipt = { ...receiptsArrayGlobal[idx].receipt, ...updatedReceipt }; saveToLocalStorage('driver_receipts', arrayToObject(receiptsArrayGlobal, 'receipt')); }
+        }
+        function arrayToObject(arr, keyName){ const o = {}; arr.forEach(item => o[item.id] = item[keyName]); return o; }
 
         window.openEditMissionForm = function(id) {
             const missionRef = ref(database, `missions/${id}`);
             onValue(missionRef, (snapshot) => {
                 if (snapshot.exists()) {
                     const mission = snapshot.val();
-                    console.log(`تحميل بيانات المأمورية ${id} للتعديل:`, mission);
                     document.getElementById('editMissionId').value = id;
                     document.getElementById('editMissionDate').value = mission.date || '';
                     document.getElementById('editMissionDriver').value = mission.driver || '';
@@ -548,51 +559,12 @@
                     document.getElementById('editMissionTripDays').value = mission.tripDays || '';
                     document.getElementById('editMissionOvernightAllowance').value = mission.overnightAllowance || 'لا';
                     document.getElementById('editMissionNotes').value = mission.notes || '';
-                    if (isAdmin) {
-                        document.getElementById('editMissionStatus').value = mission.status || 'جاري المراجعة';
-                    }
+                    if (isAdmin) document.getElementById('editMissionStatus').value = mission.status || 'جاري المراجعة';
+                    if (isAdmin || isOperationReviewer) document.getElementById('editMissionOperationReview').value = mission.operationReview || 'جاري المراجعة';
                     document.getElementById('editMissionForm').style.display = 'block';
-                } else {
-                    console.error(`المأمورية ${id} غير موجودة`);
-                    alert(`المأمورية ${id} غير موجودة`);
-                }
-            }, (error) => {
-                console.error('خطأ في تحميل بيانات المأمورية:', error);
-                alert('خطأ في تحميل بيانات المأمورية: ' + error.message);
-            });
-        }
-
-        window.openEditReceiptForm = function(id) {
-            const receiptRef = ref(database, `driver_receipts/${id}`);
-            onValue(receiptRef, (snapshot) => {
-                if (snapshot.exists()) {
-                    const receipt = snapshot.val();
-                    console.log(`تحميل بيانات الإيصال ${id} للتعديل:`, receipt);
-                    document.getElementById('editReceiptId').value = id;
-                    document.getElementById('editReceiptDate').value = receipt.date || '';
-                    document.getElementById('editReceiptDriver').value = receipt.driver || '';
-                    document.getElementById('editReceiptDelegate').value = receipt.delegate || '';
-                    document.getElementById('editReceiptCarNumber').value = receipt.carNumber || '';
-                    document.getElementById('editReceiptType').value = receipt.receiptType || '';
-                    document.getElementById('editReceiptGovernorate').value = receipt.governorate || '';
-                    document.getElementById('editReceiptProduct').value = receipt.product || '';
-                    document.getElementById('editReceiptFloorNumber').value = receipt.floorNumber || '';
-                    document.getElementById('editReceiptOrderNumber').value = receipt.orderNumber || '';
-                    document.getElementById('editReceiptDelayTime').value = receipt.delayTime || '';
-                    document.getElementById('editReceiptNotes').value = receipt.notes || '';
-                    if (isAdmin) {
-                        document.getElementById('editReceiptStatus').value = receipt.status || 'جاري المراجعة';
-                    }
-                    document.getElementById('editReceiptForm').style.display = 'block';
-                } else {
-                    console.error(`الإيصال ${id} غير موجود`);
-                    alert(`الإيصال ${id} غير موجود`);
-                }
-            }, (error) => {
-                console.error('خطأ في تحميل بيانات الإيصال:', error);
-                alert('خطأ في تحميل بيانات الإيصال: ' + error.message);
-            });
-        }
+                } else alert(`المأمورية ${id} غير موجودة`);
+            }, (error) => alert('خطأ في تحميل بيانات المأمورية: ' + error.message), { onlyOnce: true });
+        };
 
         window.updateMission = function() {
             const id = document.getElementById('editMissionId').value;
@@ -609,25 +581,40 @@
                 overnightAllowance: document.getElementById('editMissionOvernightAllowance').value,
                 notes: document.getElementById('editMissionNotes').value
             };
-            if (isAdmin) {
-                updatedMission.status = document.getElementById('editMissionStatus').value;
-            }
-            document.getElementById('loadingIndicator').style.display = 'block';
+            if (isAdmin) updatedMission.status = document.getElementById('editMissionStatus').value;
+            if (isAdmin || isOperationReviewer) updatedMission.operationReview = document.getElementById('editMissionOperationReview').value;
+            showLoading(true);
             update(ref(database, `missions/${id}`), updatedMission).then(() => {
-                console.log(`تم تحديث المأمورية ${id}`);
-                const missions = getFromLocalStorage('missions') || {};
-                missions[id] = updatedMission;
-                saveToLocalStorage('missions', missions);
-                displayMissions(missions);
+                updateMissionInMemory(id, updatedMission);
+                const filtered = applyAllMissionFilters(missionsArrayGlobal, currentMissionFilter, missionStatusFilter, missionOperationReviewFilter);
+                renderTableInBatches('missionsTable', filtered, createMissionRowObj);
                 alert('تم تحديث المأمورية بنجاح');
-            }).catch((error) => {
-                console.error('خطأ في تحديث المأمورية:', error);
-                alert('خطأ في تحديث المأمورية: ' + error.message);
-            }).finally(() => {
-                document.getElementById('loadingIndicator').style.display = 'none';
-                closeEditForm('editMissionForm');
-            });
-        }
+            }).catch((error) => alert('خطأ في تحديث المأمورية: ' + error.message)).finally(()=>{ showLoading(false); closeEditForm('editMissionForm'); });
+        };
+
+        window.openEditReceiptForm = function(id) {
+            const receiptRef = ref(database, `driver_receipts/${id}`);
+            onValue(receiptRef, (snapshot) => {
+                if (snapshot.exists()) {
+                    const receipt = snapshot.val();
+                    document.getElementById('editReceiptId').value = id;
+                    document.getElementById('editReceiptDate').value = receipt.date || '';
+                    document.getElementById('editReceiptDriver').value = receipt.driver || '';
+                    document.getElementById('editReceiptDelegate').value = receipt.delegate || '';
+                    document.getElementById('editReceiptCarNumber').value = receipt.carNumber || '';
+                    document.getElementById('editReceiptType').value = receipt.receiptType || '';
+                    document.getElementById('editReceiptGovernorate').value = receipt.governorate || '';
+                    document.getElementById('editReceiptProduct').value = receipt.product || '';
+                    document.getElementById('editReceiptFloorNumber').value = receipt.floorNumber || '';
+                    document.getElementById('editReceiptOrderNumber').value = receipt.orderNumber || '';
+                    document.getElementById('editReceiptDelayTime').value = receipt.delayTime || '';
+                    document.getElementById('editReceiptNotes').value = receipt.notes || '';
+                    if (isAdmin) document.getElementById('editReceiptStatus').value = receipt.status || 'جاري المراجعة';
+                    if (isAdmin || isOperationReviewer) document.getElementById('editReceiptOperationReview').value = receipt.operationReview || 'جاري المراجعة';
+                    document.getElementById('editReceiptForm').style.display = 'block';
+                } else alert(`الإيصال ${id} غير موجود`);
+            }, (error) => alert('خطأ في تحميل بيانات الإيصال: ' + error.message), { onlyOnce: true });
+        };
 
         window.updateReceipt = function() {
             const id = document.getElementById('editReceiptId').value;
@@ -644,322 +631,221 @@
                 delayTime: document.getElementById('editReceiptDelayTime').value,
                 notes: document.getElementById('editReceiptNotes').value
             };
-            if (isAdmin) {
-                updatedReceipt.status = document.getElementById('editReceiptStatus').value;
-            }
-            document.getElementById('loadingIndicator').style.display = 'block';
+            if (isAdmin) updatedReceipt.status = document.getElementById('editReceiptStatus').value;
+            if (isAdmin || isOperationReviewer) updatedReceipt.operationReview = document.getElementById('editReceiptOperationReview').value;
+            showLoading(true);
             update(ref(database, `driver_receipts/${id}`), updatedReceipt).then(() => {
-                console.log(`تم تحديث الإيصال ${id}`);
-                const receipts = getFromLocalStorage('driver_receipts') || {};
-                receipts[id] = updatedReceipt;
-                saveToLocalStorage('driver_receipts', receipts);
-                displayReceipts(receipts);
+                updateReceiptInMemory(id, updatedReceipt);
+                const filtered = applyAllReceiptFilters(receiptsArrayGlobal, currentReceiptFilter, receiptStatusFilter, receiptOperationReviewFilter);
+                renderTableInBatches('receiptsTable', filtered, createReceiptRowObj);
                 alert('تم تحديث الإيصال بنجاح');
-            }).catch((error) => {
-                console.error('خطأ في تحديث الإيصال:', error);
-                alert('خطأ في تحديث الإيصال: ' + error.message);
-            }).finally(() => {
-                document.getElementById('loadingIndicator').style.display = 'none';
-                closeEditForm('editReceiptForm');
-            });
-        }
-
-        window.closeEditForm = function(formId) {
-            document.getElementById(formId).style.display = 'none';
-        }
+            }).catch((error) => alert('خطأ في تحديث الإيصال: ' + error.message)).finally(()=>{ showLoading(false); closeEditForm('editReceiptForm'); });
+        };
 
         window.deleteMission = function(id) {
-            if (confirm('هل أنت متأكد من حذف هذه المأمورية؟')) {
-                document.getElementById('loadingIndicator').style.display = 'block';
-                remove(ref(database, `missions/${id}`)).then(() => {
-                    console.log(`تم حذف المأمورية ${id}`);
-                    const missions = getFromLocalStorage('missions') || {};
-                    delete missions[id];
-                    saveToLocalStorage('missions', missions);
-                    displayMissions(missions);
-                    alert('تم حذف المأمورية بنجاح');
-                }).catch((error) => {
-                    console.error('خطأ في حذف المأمورية:', error);
-                    alert('خطأ في حذف المأمورية: ' + error.message);
-                }).finally(() => {
-                    document.getElementById('loadingIndicator').style.display = 'none';
-                });
-            }
-        }
+            if (!confirm('هل أنت متأكد من حذف هذه المأمورية؟')) return;
+            showLoading(true);
+            remove(ref(database, `missions/${id}`)).then(()=> {
+                const idx = missionsArrayGlobal.findIndex(x=>x.id===id); if (idx!==-1) missionsArrayGlobal.splice(idx,1);
+                saveToLocalStorage('missions', arrayToObject(missionsArrayGlobal,'mission'));
+                const filtered = applyAllMissionFilters(missionsArrayGlobal, currentMissionFilter, missionStatusFilter, missionOperationReviewFilter);
+                renderTableInBatches('missionsTable', filtered, createMissionRowObj);
+                alert('تم حذف المأمورية بنجاح');
+            }).catch(e=>alert('خطأ في حذف المأمورية: '+e.message)).finally(()=>showLoading(false));
+        };
 
         window.deleteReceipt = function(id) {
-            if (confirm('هل أنت متأكد من حذف هذا الإيصال؟')) {
-                document.getElementById('loadingIndicator').style.display = 'block';
-                remove(ref(database, `driver_receipts/${id}`)).then(() => {
-                    console.log(`تم حذف الإيصال ${id}`);
-                    const receipts = getFromLocalStorage('driver_receipts') || {};
-                    delete receipts[id];
-                    saveToLocalStorage('driver_receipts', receipts);
-                    displayReceipts(receipts);
-                    alert('تم حذف الإيصال بنجاح');
-                }).catch((error) => {
-                    console.error('خطأ في حذف الإيصال:', error);
-                    alert('خطأ في حذف الإيصال: ' + error.message);
-                }).finally(() => {
-                    document.getElementById('loadingIndicator').style.display = 'none';
-                });
-            }
-        }
+            if (!confirm('هل أنت متأكد من حذف هذا الإيصال؟')) return;
+            showLoading(true);
+            remove(ref(database, `driver_receipts/${id}`)).then(()=> {
+                const idx = receiptsArrayGlobal.findIndex(x=>x.id===id); if (idx!==-1) receiptsArrayGlobal.splice(idx,1);
+                saveToLocalStorage('driver_receipts', arrayToObject(receiptsArrayGlobal,'receipt'));
+                const filtered = applyAllReceiptFilters(receiptsArrayGlobal, currentReceiptFilter, receiptStatusFilter, receiptOperationReviewFilter);
+                renderTableInBatches('receiptsTable', filtered, createReceiptRowObj);
+                alert('تم حذف الإيصال بنجاح');
+            }).catch(e=>alert('خطأ في حذف الإيصال: '+e.message)).finally(()=>showLoading(false));
+        };
 
-        window.downloadExcel = function(type) {
-            let data;
-            let fileName;
-            if (type === 'missions') {
-                data = getMissionsData();
-                fileName = 'المأموريات.xlsx';
-            } else if (type === 'receipts') {
-                data = getReceiptsData();
-                fileName = 'الإيصالات.xlsx';
-            }
+        window.getSelectedItems = function(tableId){ const table=document.getElementById(tableId); return Array.from(table.querySelectorAll('tbody input[type="checkbox"]:checked')).map(cb=>cb.value); };
 
+        window.deleteBulkMissions = function() {
+            const selected = window.getSelectedItems('missionsTable'); if(selected.length===0){ alert('يرجى تحديد مأمورية واحدة على الأقل'); return; }
+            if(!confirm(`هل أنت متأكد من حذف ${selected.length} مأمورية؟`)) return;
+            showLoading(true);
+            const updates={}; selected.forEach(id=>updates[`missions/${id}`]=null);
+            update(ref(database), updates).then(()=> {
+                selected.forEach(id=>{ const idx=missionsArrayGlobal.findIndex(x=>x.id===id); if(idx!==-1) missionsArrayGlobal.splice(idx,1); });
+                saveToLocalStorage('missions', arrayToObject(missionsArrayGlobal,'mission'));
+                const filtered = applyAllMissionFilters(missionsArrayGlobal, currentMissionFilter, missionStatusFilter, missionOperationReviewFilter);
+                renderTableInBatches('missionsTable', filtered, createMissionRowObj);
+                alert('تم حذف المأموريات المحددة بنجاح');
+            }).catch(e=>alert('خطأ في حذف المأموريات: '+e.message)).finally(()=>showLoading(false));
+        };
+
+        window.deleteBulkReceipts = function() {
+            const selected = window.getSelectedItems('receiptsTable'); if(selected.length===0){ alert('يرجى تحديد إيصال واحد على الأقل'); return; }
+            if(!confirm(`هل أنت متأكد من حذف ${selected.length} إيصال؟`)) return;
+            showLoading(true);
+            const updates={}; selected.forEach(id=>updates[`driver_receipts/${id}`]=null);
+            update(ref(database), updates).then(()=> {
+                selected.forEach(id=>{ const idx=receiptsArrayGlobal.findIndex(x=>x.id===id); if(idx!==-1) receiptsArrayGlobal.splice(idx,1); });
+                saveToLocalStorage('driver_receipts', arrayToObject(receiptsArrayGlobal,'receipt'));
+                const filtered = applyAllReceiptFilters(receiptsArrayGlobal, currentReceiptFilter, receiptStatusFilter, receiptOperationReviewFilter);
+                renderTableInBatches('receiptsTable', filtered, createReceiptRowObj);
+                alert('تم حذف الإيصالات المحددة بنجاح');
+            }).catch(e=>alert('خطأ في حذف الإيصالات: '+e.message)).finally(()=>showLoading(false));
+        };
+
+        window.openBulkEditMissionForm = function(){ document.getElementById('bulkEditMissionForm').style.display='block'; if(!isAdmin) document.getElementById('bulkEditMissionStatus').disabled=true; };
+        window.openBulkEditReceiptForm = function(){ document.getElementById('bulkEditReceiptForm').style.display='block'; if(!isAdmin) document.getElementById('bulkEditReceiptStatus').disabled=true; };
+        window.toggleAllCheckboxes = function(tableId){ const table=document.getElementById(tableId); const checkboxes=table.querySelectorAll('tbody tr:not([style*="display: none"]) input[type="checkbox"]'); const sel=document.getElementById(`selectAll${tableId==='missionsTable'?'Missions':'Receipts'}`); checkboxes.forEach(cb=>cb.checked=sel.checked); };
+
+        window.updateBulkMissions = function() {
+            const newStatus=document.getElementById('bulkEditMissionStatus').value; const newOp=document.getElementById('bulkEditMissionOperationReview').value;
+            const selected = getSelectedItems('missionsTable'); if(selected.length===0){ alert('يرجى تحديد مأمورية واحدة على الأقل'); closeEditForm('bulkEditMissionForm'); return; }
+            showLoading(true); const updates={}; selected.forEach(id=>{ if(isAdmin) updates[`missions/${id}/status`] = newStatus; if(isAdmin || isOperationReviewer) updates[`missions/${id}/operationReview`] = newOp; });
+            update(ref(database), updates).then(()=> {
+                selected.forEach(id=>{ const idx=missionsArrayGlobal.findIndex(x=>x.id===id); if(idx!==-1){ if(isAdmin) missionsArrayGlobal[idx].mission.status=newStatus; if(isAdmin||isOperationReviewer) missionsArrayGlobal[idx].mission.operationReview=newOp; } });
+                saveToLocalStorage('missions', arrayToObject(missionsArrayGlobal,'mission'));
+                const filtered = applyAllMissionFilters(missionsArrayGlobal, currentMissionFilter, missionStatusFilter, missionOperationReviewFilter);
+                renderTableInBatches('missionsTable', filtered, createMissionRowObj);
+                alert('تم تحديث المأموريات بنجاح');
+            }).catch(e=>alert('حدث خطأ أثناء تحديث المأموريات: '+e.message)).finally(()=>{ showLoading(false); closeEditForm('bulkEditMissionForm'); });
+        };
+
+        window.updateBulkReceipts = function() {
+            const newStatus=document.getElementById('bulkEditReceiptStatus').value; const newOp=document.getElementById('bulkEditReceiptOperationReview').value;
+            const selected = getSelectedItems('receiptsTable'); if(selected.length===0){ alert('يرجى تحديد إيصال واحد على الأقل'); closeEditForm('bulkEditReceiptForm'); return; }
+            showLoading(true); const updates={}; selected.forEach(id=>{ if(isAdmin) updates[`driver_receipts/${id}/status`]=newStatus; if(isAdmin||isOperationReviewer) updates[`driver_receipts/${id}/operationReview`]=newOp; });
+            update(ref(database), updates).then(()=> {
+                selected.forEach(id=>{ const idx=receiptsArrayGlobal.findIndex(x=>x.id===id); if(idx!==-1){ if(isAdmin) receiptsArrayGlobal[idx].receipt.status=newStatus; if(isAdmin||isOperationReviewer) receiptsArrayGlobal[idx].receipt.operationReview=newOp; } });
+                saveToLocalStorage('driver_receipts', arrayToObject(receiptsArrayGlobal,'receipt'));
+                const filtered = applyAllReceiptFilters(receiptsArrayGlobal, currentReceiptFilter, receiptStatusFilter, receiptOperationReviewFilter);
+                renderTableInBatches('receiptsTable', filtered, createReceiptRowObj);
+                alert('تم تحديث الإيصالات بنجاح');
+            }).catch(e=>alert('حدث خطأ أثناء تحديث الإيصالات: '+e.message)).finally(()=>{ showLoading(false); closeEditForm('bulkEditReceiptForm'); });
+        };
+
+        
+function buildStatsSheet(rows, statusKey){
+    const counter = {};
+    rows.forEach(r=>{
+        const s = r[statusKey] || 'جاري المراجعة';
+        counter[s] = (counter[s] || 0) + 1;
+    });
+    return Object.keys(counter).map(k=>({ 'الحالة': k, 'العدد': counter[k] }));
+}
+
+window.downloadExcel = function(type) {
+            let data, fileName;
+            if (type === 'missions') { data = getMissionsData(); fileName = 'المأموريات.xlsx'; }
+            else { data = getReceiptsData(); fileName = 'الإيصالات.xlsx'; }
             const ws = XLSX.utils.json_to_sheet(data);
             const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "Sheet1");
+            XLSX.utils.book_append_sheet(wb, ws, "البيانات");
 
-            const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
-            const blob = new Blob([s2ab(wbout)], { type: 'application/octet-stream' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = fileName;
-            document.body.appendChild(a);
-            a.click();
-            setTimeout(() => {
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-            }, 0);
-        }
-
-        function s2ab(s) {
-            const buf = new ArrayBuffer(s.length);
-            const view = new Uint8Array(buf);
-            for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF;
-            return buf;
-        }
+            const statsData = buildStatsSheet(data, type === 'missions' ? 'حالة المأمورية' : 'حالة الإيصال');
+            const wsStats = XLSX.utils.json_to_sheet(statsData);
+            XLSX.utils.book_append_sheet(wb, wsStats, "إحصائيات");
+            const wbout = XLSX.write(wb, { bookType:'xlsx', type:'binary' }); const blob = new Blob([s2ab(wbout)], { type:'application/octet-stream' });
+            const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href = url; a.download = fileName; document.body.appendChild(a); a.click();
+            setTimeout(()=>{ document.body.removeChild(a); URL.revokeObjectURL(url); }, 0);
+        };
 
         function getMissionsData() {
-            const table = document.getElementById('missionsTable');
-            const data = [];
-            for (let i = 1; i < table.rows.length; i++) {
-                const row = table.rows[i];
-                const startIndex = isAdmin ? 1 : 0;
-                const rowData = {
-                    'التاريخ': row.cells[startIndex].innerText,
-                    'اسم السائق': row.cells[startIndex + 1].innerText,
-                    'رقم السيارة': row.cells[startIndex + 2].innerText,
-                    'اسم المندوب': row.cells[startIndex + 3].innerText,
-                    'اتجاه الرحلة': row.cells[startIndex + 4].innerText,
-                    'رقم الجولة أو الإذن': row.cells[startIndex + 5].innerText,
-                    'عداد البداية': row.cells[startIndex + 6].innerText,
-                    'عداد النهاية': row.cells[startIndex + 7].innerText,
-                    'صافي العداد': row.cells[startIndex + 8].innerText,
-                    'عدد أيام الرحلة': row.cells[startIndex + 9].innerText,
-                    'بدل مبيت': row.cells[startIndex + 10].innerText,
-                    'حالة المأمورية': row.cells[startIndex + 11].innerText,
-                    'ملاحظات': row.cells[startIndex + 12].innerText
+            const data=[]; const arr = applyAllMissionFilters(missionsArrayGlobal, currentMissionFilter, missionStatusFilter, missionOperationReviewFilter);
+            arr.forEach(item => {
+                const m = item.mission;
+                const row = {
+                    'التاريخ': m.date || '',
+                    'اسم السائق': m.driver || '',
+                    'رقم السيارة': m.carNumber || '',
+                    'اسم المندوب': m.delegate || '',
+                    'اتجاه الرحلة': m.direction || '',
+                    'رقم الجولة أو الإذن': m.tourNumber || '',
+                    'عداد البداية': m.startOdometer || '',
+                    'عداد النهاية': m.endOdometer || '',
+                    'صافي العداد': calculateNetOdometer(m.startOdometer, m.endOdometer),
+                    'عدد أيام الرحلة': m.tripDays || '',
+                    'بدل مبيت': m.overnightAllowance || '',
+                    'ملاحظات': m.notes || '',
+                    'حالة المأمورية': m.status || ''
                 };
-                if (isAdmin) {
-                    rowData['البريد الإلكتروني للمسجل'] = row.cells[startIndex + 13].innerText;
-                    rowData['تاريخ التسجيل'] = row.cells[startIndex + 14].innerText;
-                }
-                data.push(rowData);
-            }
-            console.log('بيانات المأموريات للتصدير:', data);
+                if (isAdmin || isOperationReviewer) row['مراجعة التشغيل'] = m.operationReview || 'جاري المراجعة';
+                if (isAdmin) { row['البريد الإلكتروني للمسجل'] = m.userEmail || ''; row['تاريخ التسجيل'] = m.createdAt ? new Date(m.createdAt).toLocaleString('ar-EG') : ''; }
+                data.push(row);
+            });
             return data;
         }
 
         function getReceiptsData() {
-            const table = document.getElementById('receiptsTable');
-            const data = [];
-            for (let i = 1; i < table.rows.length; i++) {
-                const row = table.rows[i];
-                const startIndex = isAdmin ? 1 : 0;
-                const rowData = {
-                    'التاريخ': row.cells[startIndex].innerText,
-                    'اسم السائق': row.cells[startIndex + 1].innerText,
-                    'اسم المندوب': row.cells[startIndex + 2].innerText,
-                    'رقم السيارة': row.cells[startIndex + 3].innerText,
-                    'نوع الإيصال': row.cells[startIndex + 4].innerText,
-                    'حالة الإيصال': row.cells[startIndex + 5].innerText,
-                    'المحافظة': row.cells[startIndex + 6].innerText,
-                    'المنتج': row.cells[startIndex + 7].innerText,
-                    'رقم الدور': row.cells[startIndex + 8].innerText,
-                    'رقم الطلب': row.cells[startIndex + 9].innerText,
-                    'وقت التأخير': row.cells[startIndex + 10].innerText,
-                    'ملاحظات': row.cells[startIndex + 11].innerText
+            const data=[]; const arr = applyAllReceiptFilters(receiptsArrayGlobal, currentReceiptFilter, receiptStatusFilter, receiptOperationReviewFilter);
+            arr.forEach(item => {
+                const r = item.receipt;
+                const row = {
+                    'التاريخ': r.date || '',
+                    'اسم السائق': r.driver || '',
+                    'اسم المندوب': r.delegate || '',
+                    'رقم السيارة': r.carNumber || '',
+                    'نوع الإيصال': r.receiptType || '',
+                    'المحافظة': r.governorate || '',
+                    'المنتج': r.product || '',
+                    'رقم الدور': r.floorNumber || '',
+                    'رقم الطلب': r.orderNumber || '',
+                    'وقت التأخير': r.delayTime || '',
+                    'ملاحظات': r.notes || '',
+                    'حالة الإيصال': r.status || ''
                 };
-                if (isAdmin) {
-                    rowData['البريد الإلكتروني للمسجل'] = row.cells[startIndex + 12].innerText;
-                    rowData['تاريخ التسجيل'] = row.cells[startIndex + 13].innerText;
-                }
-                data.push(rowData);
-            }
-            console.log('بيانات الإيصالات للتصدير:', data);
+                if (isAdmin || isOperationReviewer) row['مراجعة التشغيل'] = r.operationReview || 'جاري المراجعة';
+                if (isAdmin) { row['البريد الإلكتروني للمسجل'] = r.userEmail || ''; row['تاريخ التسجيل'] = r.createdAt ? new Date(r.createdAt).toLocaleString('ar-EG') : ''; }
+                data.push(row);
+            });
             return data;
         }
 
-        window.searchTable = function(tableId, inputId) {
-            const input = document.getElementById(inputId);
-            const filter = input.value.toUpperCase();
-            const table = document.getElementById(tableId);
-            const tr = table.getElementsByTagName('tr');
+        window.closeEditForm = function(formId){ document.getElementById(formId).style.display='none'; }
 
-            for (let i = 1; i < tr.length; i++) {
-                let visible = false;
-                const td = tr[i].getElementsByTagName("td");
-                for (let j = 0; j < td.length; j++) {
-                    if (td[j]) {
-                        let txtValue = td[j].textContent || td[j].innerText;
-                        if (txtValue.toUpperCase().indexOf(filter) > -1) {
-                            visible = true;
-                            break;
-                        }
-                    }
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                currentUserEmail = user.email;
+                isAdmin = (currentUserEmail === 'ahmed29944@btech.com');
+                isOperationReviewer = (currentUserEmail === 'ahmed30133@btech.com');
+                if (isAdmin) {
+                    document.getElementById('missionEmailHeader').style.display='table-cell';
+                    document.getElementById('receiptEmailHeader').style.display='table-cell';
+                    document.getElementById('missionDeleteHeader').style.display='table-cell';
+                    document.getElementById('receiptDeleteHeader').style.display='table-cell';
+                    document.getElementById('editMissionStatus').style.display='block';
+                    document.getElementById('editReceiptStatus').style.display='block';
+                    document.getElementById('bulkEditMissionBtn').style.display='inline-block';
+                    document.getElementById('bulkEditReceiptBtn').style.display='inline-block';
+                    document.getElementById('bulkDeleteMissionBtn').style.display='inline-block';
+                    document.getElementById('bulkDeleteReceiptBtn').style.display='inline-block';
+                    document.getElementById('selectAllMissionsHeader').style.display='table-cell';
+                    document.getElementById('selectAllReceiptsHeader').style.display='table-cell';
+                    document.getElementById('missionCreatedAtHeader').style.display='table-cell';
+                    document.getElementById('receiptCreatedAtHeader').style.display='table-cell';
+                    document.getElementById('missionOperationReviewHeader').style.display='table-cell';
+                    document.getElementById('receiptOperationReviewHeader').style.display='table-cell';
+                    document.getElementById('editMissionOperationReview').style.display='block';
+                    document.getElementById('editReceiptOperationReview').style.display='block';
+                } else if (isOperationReviewer) {
+                    document.getElementById('missionOperationReviewHeader').style.display='table-cell';
+                    document.getElementById('receiptOperationReviewHeader').style.display='table-cell';
+                    document.getElementById('editMissionOperationReview').style.display='block';
+                    document.getElementById('editReceiptOperationReview').style.display='block';
+                    document.getElementById('bulkEditMissionBtn').style.display='inline-block';
+                    document.getElementById('bulkEditReceiptBtn').style.display='inline-block';
+                    document.getElementById('editMissionForm').querySelectorAll('input, select, textarea').forEach(field => { if (field.id !== 'editMissionOperationReview' && field.id !== 'editMissionId' && field.type !== 'button') field.disabled = true; });
+                    document.getElementById('editReceiptForm').querySelectorAll('input, select, textarea').forEach(field => { if (field.id !== 'editReceiptOperationReview' && field.id !== 'editReceiptId' && field.type !== 'button') field.disabled = true; });
                 }
-                tr[i].style.display = visible ? "" : "none";
+                fetchAndDisplayMissions();
+                fetchAndDisplayReceipts();
+            } else {
+                alert('يرجى تسجيل الدخول أولاً.');
+                window.location.href = 'login.html';
             }
-        }
-
-        function sortTable(tableId, colIndex, asc = true) {
-            const table = document.getElementById(tableId);
-            const tbody = table.tBodies[0];
-            const rowsArray = Array.from(tbody.rows);
-
-            rowsArray.sort((rowA, rowB) => {
-                const cellA = rowA.cells[colIndex].textContent.trim();
-                const cellB = rowB.cells[colIndex].textContent.trim();
-
-                if (!isNaN(cellA) && !isNaN(cellB)) {
-                    return asc ? cellA - cellB : cellB - cellA;
-                } else {
-                    return asc ? cellA.localeCompare(cellB) : cellB.localeCompare(cellA);
-                }
-            });
-
-            rowsArray.forEach(row => tbody.appendChild(row));
-        }
-
-        document.querySelectorAll('#missionsTable th, #receiptsTable th').forEach((header, index) => {
-            let asc = true;
-            header.addEventListener('click', () => {
-                const tableId = header.closest('table').id;
-                sortTable(tableId, index, asc);
-                asc = !asc;
-            });
-        });
-
-        window.openBulkEditMissionForm = function() {
-            document.getElementById('bulkEditMissionForm').style.display = 'block';
-        }
-
-        window.openBulkEditReceiptForm = function() {
-            document.getElementById('bulkEditReceiptForm').style.display = 'block';
-        }
-
-        window.toggleAllCheckboxes = function(tableId) {
-            const table = document.getElementById(tableId);
-            const checkboxes = table.querySelectorAll('tbody tr:not([style*="display: none"]) input[type="checkbox"]');
-            const selectAllCheckbox = document.getElementById(`selectAll${tableId === 'missionsTable' ? 'Missions' : 'Receipts'}`);
-            
-            checkboxes.forEach(checkbox => {
-                checkbox.checked = selectAllCheckbox.checked;
-            });
-        }
-
-        window.updateBulkMissions = function() {
-            const newStatus = document.getElementById('bulkEditMissionStatus').value;
-            const selectedMissions = getSelectedItems('missionsTable');
-
-            if (selectedMissions.length === 0) {
-                alert('يرجى تحديد مأمورية واحدة على الأقل');
-                closeEditForm('bulkEditMissionForm');
-                return;
-            }
-
-            document.getElementById('loadingIndicator').style.display = 'block';
-
-            const updates = {};
-            selectedMissions.forEach(id => {
-                updates[`missions/${id}/status`] = newStatus;
-            });
-
-            update(ref(database), updates)
-                .then(() => {
-                    console.log(`تم تحديث حالة ${selectedMissions.length} مأمورية إلى ${newStatus}`);
-                    const missions = getFromLocalStorage('missions') || {};
-                    selectedMissions.forEach(id => {
-                        if (missions[id]) {
-                            missions[id].status = newStatus;
-                        }
-                    });
-                    saveToLocalStorage('missions', missions);
-                    displayMissions(missions);
-                    alert('تم تحديث المأموريات بنجاح');
-                })
-                .catch((error) => {
-                    console.error('خطأ في تحديث الحالة الجماعية للمأموريات:', error);
-                    alert('حدث خطأ أثناء تحديث المأموريات: ' + error.message);
-                })
-                .finally(() => {
-                    document.getElementById('loadingIndicator').style.display = 'none';
-                    closeEditForm('bulkEditMissionForm');
-                });
-        }
-
-        window.updateBulkReceipts = function() {
-            const newStatus = document.getElementById('bulkEditReceiptStatus').value;
-            const selectedReceipts = getSelectedItems('receiptsTable');
-
-            if (selectedReceipts.length === 0) {
-                alert('يرجى تحديد إيصال واحد على الأقل');
-                closeEditForm('bulkEditReceiptForm');
-                return;
-            }
-
-            document.getElementById('loadingIndicator').style.display = 'block';
-
-            const updates = {};
-            selectedReceipts.forEach(id => {
-                updates[`driver_receipts/${id}/status`] = newStatus;
-            });
-
-            update(ref(database), updates)
-                .then(() => {
-                    console.log(`تم تحديث حالة ${selectedReceipts.length} إيصال إلى ${newStatus}`);
-                    const receipts = getFromLocalStorage('driver_receipts') || {};
-                    selectedReceipts.forEach(id => {
-                        if (receipts[id]) {
-                            receipts[id].status = newStatus;
-                        }
-                    });
-                    saveToLocalStorage('driver_receipts', receipts);
-                    displayReceipts(receipts);
-                    alert('تم تحديث الإيصالات بنجاح');
-                })
-                .catch((error) => {
-                    console.error('خطأ في تحديث الحالة الجماعية للإيصالات:', error);
-                    alert('حدث خطأ أثناء تحديث الإيصالات: ' + error.message);
-                })
-                .finally(() => {
-                    document.getElementById('loadingIndicator').style.display = 'none';
-                    closeEditForm('bulkEditReceiptForm');
-                });
-        }
-
-        function getSelectedItems(tableId) {
-            const table = document.getElementById(tableId);
-            const checkboxes = table.querySelectorAll('tbody tr:not([style*="display: none"]) input[type="checkbox"]:checked');
-            return Array.from(checkboxes).map(checkbox => checkbox.value).filter(id => id);
-        }
-
-        // جلب البيانات عند تحميل الصفحة
-        fetchAndDisplayMissions();
-        fetchAndDisplayReceipts();
+        }, (error) => { alert('خطأ في التحقق من حالة تسجيل الدخول: ' + error.message); window.location.href = 'login.html'; });
     </script>
 </body>
 </html>
