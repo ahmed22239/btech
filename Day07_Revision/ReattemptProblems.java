@@ -17,10 +17,10 @@ public class ReattemptProblems {
 
     public static void main(String[] args) {
 
-        // 1. Print 1 to N
+        // 1. Print 1 to N 
         int num1 = 5;
         for (int i = 1; i <= num1; i++) {
-            System.out.println(i + " ");
+            System.out.print(i + " ");
         }
         System.out.println();
 
