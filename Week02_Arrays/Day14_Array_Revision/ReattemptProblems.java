@@ -84,27 +84,35 @@ public class ReattemptProblems {
         System.out.println("\n7. Count Even & Odd Elements:");
         countEvenodd(arr);
 
+        // 8. Second Largest Element
         System.out.println("\n8. Second Largest Element:");
         secondLargest(new int[] { 10, 5, 20, 8 });
 
+        // 9. Rotate Array By k
         System.out.println("\n9. Rotate Array by K:");
         rotateByK(new int[] { 1, 2, 3, 4, 5 }, 2);
 
+        // 10. Kadane (Max Subarray Sum)
         System.out.println("\n10. Kadane's Algorithm (Max Subarray Sum):");
         kadane(new int[] { -2, 1, -3, 4, -1, 2, 1 });
 
+        // 11. Prfix Sum Array
         System.out.println("\n11. Prefix Sum Array:");
         prefixSum(new int[] { 1, 2, 3, 4 });
 
+        // 12. Two Sum
         System.out.println("\n12. Two Sum Problem:");
         twoSum(new int[] { 2, 7, 11, 15 }, 9);
 
+        // 13. Leaders in Array
         System.out.println("\n13. Leaders in Array:");
         leaders(new int[] { 16, 17, 4, 3, 5, 2 });
 
+        // 14. Majority Element
         System.out.println("\n14. Majority Element:");
         majorityElement(new int[] { 2, 2, 1, 2, 3, 2, 2 });
 
+        // 15. Trapping Water Problem
         System.out.println("\n15. Trapping Rain Water:");
         trappingRainWater(new int[] { 3, 0, 0, 2, 0, 4 });
 
